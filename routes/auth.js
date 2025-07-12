@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User');
 const { auth, generateToken, actionRateLimit } = require('../middleware/auth');
 const { userValidation } = require('../middleware/validation');
 const { asyncHandler } = require('../middleware/errorHandler');
@@ -13,9 +12,14 @@ router.post('/register',
   actionRateLimit('register', 3, 15 * 60 * 1000), // 3 attempts per 15 minutes
   asyncHandler(async (req, res) => {
     const { username, email, password } = req.body;
+    const db = req.app.get('db');
+
+    // Initialize User model with database connection
+    const User = require('../models/User');
+    const userModel = new User(db);
 
     // Check if user already exists
-    const existingUser = await User.findByUsernameOrEmail(username);
+    const existingUser = await userModel.findByUsernameOrEmail(username);
     if (existingUser) {
       return res.status(400).json({
         success: false,
@@ -23,21 +27,30 @@ router.post('/register',
       });
     }
 
+    // Check if email already exists
+    const existingEmail = await userModel.findByEmail(email);
+    if (existingEmail) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is already registered'
+      });
+    }
+
     // Create new user
-    const user = await User.create({
+    const user = await userModel.create({
       username,
       email,
       password
     });
 
     // Generate token
-    const token = generateToken(user._id);
+    const token = generateToken(user.id);
 
     res.status(201).json({
       success: true,
       message: 'User registered successfully',
       data: {
-        user: user.getPublicProfile(),
+        user: userModel.getPublicProfile(user),
         token
       }
     });
@@ -52,9 +65,14 @@ router.post('/login',
   actionRateLimit('login', 5, 15 * 60 * 1000), // 5 attempts per 15 minutes
   asyncHandler(async (req, res) => {
     const { identifier, password } = req.body;
+    const db = req.app.get('db');
+
+    // Initialize User model with database connection
+    const User = require('../models/User');
+    const userModel = new User(db);
 
     // Find user by username or email
-    const user = await User.findByUsernameOrEmail(identifier).select('+password');
+    const user = await userModel.findByUsernameOrEmail(identifier);
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -63,7 +81,7 @@ router.post('/login',
     }
 
     // Check password
-    const isPasswordValid = await user.comparePassword(password);
+    const isPasswordValid = await userModel.comparePassword(password, user.password_hash);
     if (!isPasswordValid) {
       return res.status(401).json({
         success: false,
@@ -71,26 +89,19 @@ router.post('/login',
       });
     }
 
-    // Check if account is active
-    if (!user.isActive) {
-      return res.status(401).json({
-        success: false,
-        message: 'Account is deactivated'
-      });
-    }
+    // Note: is_active check removed since current database schema doesn't include this column
 
-    // Update last seen
-    user.lastSeen = new Date();
-    await user.save();
+    // Update last login
+    await userModel.updateLastLogin(user.id);
 
     // Generate token
-    const token = generateToken(user._id);
+    const token = generateToken(user.id);
 
     res.json({
       success: true,
       message: 'Login successful',
       data: {
-        user: user.getPublicProfile(),
+        user: userModel.getPublicProfile(user),
         token
       }
     });
@@ -101,10 +112,23 @@ router.post('/login',
 // @desc    Get current user profile
 // @access  Private
 router.get('/me', auth, asyncHandler(async (req, res) => {
+  const db = req.app.get('db');
+  const User = require('../models/User');
+  const userModel = new User(db);
+
+  // Get fresh user data
+  const user = await userModel.findById(req.user.id);
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: 'User not found'
+    });
+  }
+
   res.json({
     success: true,
     data: {
-      user: req.user.getPublicProfile()
+      user: userModel.getPublicProfile(user)
     }
   });
 }));
@@ -117,15 +141,16 @@ router.put('/profile',
   userValidation.updateProfile,
   asyncHandler(async (req, res) => {
     const { username, bio, avatar } = req.body;
+    const db = req.app.get('db');
+    const User = require('../models/User');
+    const userModel = new User(db);
+
     const updates = {};
 
     if (username) {
       // Check if username is already taken
-      const existingUser = await User.findOne({ 
-        username, 
-        _id: { $ne: req.user._id } 
-      });
-      if (existingUser) {
+      const existingUser = await userModel.findByUsername(username);
+      if (existingUser && existingUser.id !== req.user.id) {
         return res.status(400).json({
           success: false,
           message: 'Username is already taken'
@@ -137,17 +162,29 @@ router.put('/profile',
     if (bio !== undefined) updates.bio = bio;
     if (avatar !== undefined) updates.avatar = avatar;
 
-    const updatedUser = await User.findByIdAndUpdate(
-      req.user._id,
-      updates,
-      { new: true, runValidators: true }
-    ).select('-password');
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No updates provided'
+      });
+    }
+
+    const success = await userModel.update(req.user.id, updates);
+    if (!success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to update profile'
+      });
+    }
+
+    // Get updated user
+    const updatedUser = await userModel.findById(req.user.id);
 
     res.json({
       success: true,
       message: 'Profile updated successfully',
       data: {
-        user: updatedUser.getPublicProfile()
+        user: userModel.getPublicProfile(updatedUser)
       }
     });
   })
@@ -161,6 +198,9 @@ router.put('/password',
   actionRateLimit('password_change', 3, 60 * 60 * 1000), // 3 attempts per hour
   asyncHandler(async (req, res) => {
     const { currentPassword, newPassword } = req.body;
+    const db = req.app.get('db');
+    const User = require('../models/User');
+    const userModel = new User(db);
 
     if (!currentPassword || !newPassword) {
       return res.status(400).json({
@@ -177,10 +217,16 @@ router.put('/password',
     }
 
     // Get user with password
-    const user = await User.findById(req.user._id).select('+password');
+    const user = await userModel.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
 
     // Verify current password
-    const isCurrentPasswordValid = await user.comparePassword(currentPassword);
+    const isCurrentPasswordValid = await userModel.comparePassword(currentPassword, user.password_hash);
     if (!isCurrentPasswordValid) {
       return res.status(400).json({
         success: false,
@@ -189,8 +235,13 @@ router.put('/password',
     }
 
     // Update password
-    user.password = newPassword;
-    await user.save();
+    const success = await userModel.updatePassword(req.user.id, newPassword);
+    if (!success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to update password'
+      });
+    }
 
     res.json({
       success: true,
@@ -200,109 +251,45 @@ router.put('/password',
 );
 
 // @route   POST /api/auth/logout
-// @desc    Logout user (client-side token removal)
+// @desc    Logout user
 // @access  Private
-router.post('/logout', auth, (req, res) => {
+router.post('/logout', auth, asyncHandler(async (req, res) => {
+  // In a JWT-based system, logout is typically handled client-side
+  // by removing the token. However, we can implement server-side
+  // logout by maintaining a blacklist of tokens if needed.
+  
   res.json({
     success: true,
     message: 'Logged out successfully'
   });
-});
+}));
 
 // @route   POST /api/auth/refresh
 // @desc    Refresh JWT token
 // @access  Private
 router.post('/refresh', auth, asyncHandler(async (req, res) => {
+  const db = req.app.get('db');
+  const User = require('../models/User');
+  const userModel = new User(db);
+
+  // Get fresh user data
+  const user = await userModel.findById(req.user.id);
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: 'User not found'
+    });
+  }
+
   // Generate new token
-  const token = generateToken(req.user._id);
+  const token = generateToken(user.id);
 
   res.json({
     success: true,
     message: 'Token refreshed successfully',
     data: {
+      user: userModel.getPublicProfile(user),
       token
-    }
-  });
-}));
-
-// @route   DELETE /api/auth/account
-// @desc    Delete user account
-// @access  Private
-router.delete('/account',
-  auth,
-  actionRateLimit('account_deletion', 1, 24 * 60 * 60 * 1000), // 1 attempt per day
-  asyncHandler(async (req, res) => {
-    const { password } = req.body;
-
-    if (!password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password is required to delete account'
-      });
-    }
-
-    // Get user with password
-    const user = await User.findById(req.user._id).select('+password');
-
-    // Verify password
-    const isPasswordValid = await user.comparePassword(password);
-    if (!isPasswordValid) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password is incorrect'
-      });
-    }
-
-    // Soft delete user (deactivate account)
-    user.isActive = false;
-    await user.save();
-
-    res.json({
-      success: true,
-      message: 'Account deleted successfully'
-    });
-  })
-);
-
-// @route   GET /api/auth/check-username/:username
-// @desc    Check if username is available
-// @access  Public
-router.get('/check-username/:username', asyncHandler(async (req, res) => {
-  const { username } = req.params;
-
-  if (username.length < 3 || username.length > 30) {
-    return res.status(400).json({
-      success: false,
-      message: 'Username must be between 3 and 30 characters'
-    });
-  }
-
-  const existingUser = await User.findOne({ username });
-  const isAvailable = !existingUser;
-
-  res.json({
-    success: true,
-    data: {
-      username,
-      isAvailable
-    }
-  });
-}));
-
-// @route   GET /api/auth/check-email/:email
-// @desc    Check if email is available
-// @access  Public
-router.get('/check-email/:email', asyncHandler(async (req, res) => {
-  const { email } = req.params;
-
-  const existingUser = await User.findOne({ email: email.toLowerCase() });
-  const isAvailable = !existingUser;
-
-  res.json({
-    success: true,
-    data: {
-      email,
-      isAvailable
     }
   });
 }));

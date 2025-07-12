@@ -1,5 +1,4 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
 
 // Authentication middleware
 const auth = async (req, res, next) => {
@@ -11,13 +10,19 @@ const auth = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId).select('-password');
+    
+    // Get database connection and User model
+    const db = req.app.get('db');
+    const User = require('../models/User');
+    const userModel = new User(db);
+    
+    const user = await userModel.findById(decoded.userId);
     
     if (!user) {
       return res.status(401).json({ message: 'Invalid token. User not found.' });
     }
 
-    if (!user.isActive) {
+    if (!user.is_active) {
       return res.status(401).json({ message: 'Account is deactivated.' });
     }
 
@@ -41,9 +46,15 @@ const optionalAuth = async (req, res, next) => {
     
     if (token) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const user = await User.findById(decoded.userId).select('-password');
       
-      if (user && user.isActive) {
+      // Get database connection and User model
+      const db = req.app.get('db');
+      const User = require('../models/User');
+      const userModel = new User(db);
+      
+      const user = await userModel.findById(decoded.userId);
+      
+      if (user && user.is_active) {
         req.user = user;
       }
     }
@@ -92,7 +103,9 @@ const verifyOwnership = (model, paramName = 'id') => {
   return async (req, res, next) => {
     try {
       const resourceId = req.params[paramName];
-      const resource = await model.findById(resourceId);
+      const db = req.app.get('db');
+      const resourceModel = new model(db);
+      const resource = await resourceModel.findById(resourceId);
       
       if (!resource) {
         return res.status(404).json({ message: 'Resource not found.' });
@@ -105,8 +118,8 @@ const verifyOwnership = (model, paramName = 'id') => {
       }
 
       // Check if user owns the resource
-      const ownerField = resource.author ? 'author' : 'createdBy';
-      if (resource[ownerField].toString() !== req.user._id.toString()) {
+      const ownerField = resource.author_id ? 'author_id' : 'author_id';
+      if (resource[ownerField] !== req.user.id) {
         return res.status(403).json({ 
           message: 'Access denied. You can only modify your own resources.' 
         });
@@ -125,7 +138,7 @@ const actionRateLimit = (action, maxAttempts = 5, windowMs = 15 * 60 * 1000) => 
   const attempts = new Map();
   
   return (req, res, next) => {
-    const userId = req.user?._id || req.ip;
+    const userId = req.user?.id || req.ip;
     const key = `${action}_${userId}`;
     
     const now = Date.now();

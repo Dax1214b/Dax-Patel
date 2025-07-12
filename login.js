@@ -1,4 +1,4 @@
-// Login form handling and validation
+// Login form handling and validation for StackIt
 class LoginManager {
     constructor() {
         this.form = document.getElementById('loginForm');
@@ -27,18 +27,27 @@ class LoginManager {
 
     async checkLoginStatus() {
         try {
-            const response = await fetch('/api/check-session', {
+            const token = localStorage.getItem('stackit_token');
+            if (!token) return;
+
+            const response = await fetch('/api/auth/me', {
                 method: 'GET',
-                credentials: 'include'
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
             });
             
             const data = await response.json();
             
             if (data.success) {
                 this.redirectToDashboard();
+            } else {
+                localStorage.removeItem('stackit_token');
             }
         } catch (error) {
             console.error('Session check error:', error);
+            localStorage.removeItem('stackit_token');
         }
     }
 
@@ -100,31 +109,32 @@ class LoginManager {
 
     async attemptLogin(email, password, rememberMe) {
         try {
-            const response = await fetch('/api/login', {
+            const response = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                credentials: 'include',
                 body: JSON.stringify({
-                    email: email,
-                    password: password,
-                    remember_me: rememberMe
+                    identifier: email, // StackIt uses 'identifier' field
+                    password: password
                 })
             });
 
             const data = await response.json();
 
             if (data.success) {
+                // Store JWT token
+                localStorage.setItem('stackit_token', data.token);
+                
                 // Handle "Remember Me" functionality
                 this.handleRememberMe(email, rememberMe);
                 
                 // Show success message
-                this.showSuccess("Login successful! Redirecting...");
+                this.showSuccess("Login successful! Redirecting to StackIt...");
                 
                 // Redirect to dashboard
                 setTimeout(() => {
-                    window.location.href = data.redirect || '/dashboard.html';
+                    window.location.href = '/dashboard';
                 }, 1000);
                 
             } else {
@@ -167,7 +177,7 @@ class LoginManager {
     }
 
     redirectToDashboard() {
-        window.location.href = '/dashboard.html';
+        window.location.href = '/dashboard';
     }
 
     showError(message) {
@@ -205,10 +215,6 @@ class LoginManager {
         if (this.successContainer) {
             this.successContainer.style.display = 'none';
         }
-        
-        // Remove any dynamically created message containers
-        const alerts = document.querySelectorAll('.alert');
-        alerts.forEach(alert => alert.remove());
     }
 
     clearError() {
@@ -218,71 +224,10 @@ class LoginManager {
     }
 
     setLoadingState(loading) {
-        if (loading) {
-            this.submitButton.disabled = true;
-            this.submitButton.textContent = 'Logging in...';
-        } else {
-            this.submitButton.disabled = false;
-            this.submitButton.textContent = 'Launch Login';
+        if (this.submitButton) {
+            this.submitButton.disabled = loading;
+            this.submitButton.textContent = loading ? 'Launching...' : 'Launch Login';
         }
-    }
-}
-
-// Utility functions
-async function logout() {
-    try {
-        const response = await fetch('/api/logout', {
-            method: 'POST',
-            credentials: 'include'
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            // Clear local storage
-            localStorage.clear();
-            sessionStorage.clear();
-            
-            // Clear cookies
-            document.cookie = 'user_email=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;';
-            
-            // Redirect to login page
-            window.location.href = '/login.html';
-        }
-    } catch (error) {
-        console.error('Logout error:', error);
-        // Force redirect even if logout fails
-        window.location.href = '/login.html';
-    }
-}
-
-async function isLoggedIn() {
-    try {
-        const response = await fetch('/api/check-session', {
-            method: 'GET',
-            credentials: 'include'
-        });
-        
-        const data = await response.json();
-        return data.success;
-    } catch (error) {
-        console.error('Session check error:', error);
-        return false;
-    }
-}
-
-async function getCurrentUser() {
-    try {
-        const response = await fetch('/api/check-session', {
-            method: 'GET',
-            credentials: 'include'
-        });
-        
-        const data = await response.json();
-        return data.success ? data.user : null;
-    } catch (error) {
-        console.error('Get user error:', error);
-        return null;
     }
 }
 
@@ -291,7 +236,73 @@ document.addEventListener('DOMContentLoaded', () => {
     new LoginManager();
 });
 
-// Export functions for use in other scripts
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { LoginManager, logout, isLoggedIn, getCurrentUser };
+// Global logout function
+async function logout() {
+    try {
+        const token = localStorage.getItem('stackit_token');
+        if (token) {
+            await fetch('/api/auth/logout', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Logout error:', error);
+    } finally {
+        // Clear local storage and redirect
+        localStorage.removeItem('stackit_token');
+        localStorage.removeItem('stackit_user');
+        window.location.href = '/login';
+    }
+}
+
+// Check if user is logged in
+async function isLoggedIn() {
+    const token = localStorage.getItem('stackit_token');
+    if (!token) return false;
+
+    try {
+        const response = await fetch('/api/auth/me', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        return data.success;
+    } catch (error) {
+        console.error('Auth check error:', error);
+        return false;
+    }
+}
+
+// Get current user data
+async function getCurrentUser() {
+    const token = localStorage.getItem('stackit_token');
+    if (!token) return null;
+
+    try {
+        const response = await fetch('/api/auth/me', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            localStorage.setItem('stackit_user', JSON.stringify(data.user));
+            return data.user;
+        }
+        return null;
+    } catch (error) {
+        console.error('Get user error:', error);
+        return null;
+    }
 } 

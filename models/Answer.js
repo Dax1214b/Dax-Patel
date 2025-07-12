@@ -1,225 +1,284 @@
-const mongoose = require('mongoose');
+class Answer {
+  constructor(db) {
+    this.db = db;
+  }
 
-const answerSchema = new mongoose.Schema({
-  content: {
-    type: String,
-    required: [true, 'Answer content is required'],
-    minlength: [20, 'Answer must be at least 20 characters long']
-  },
-  author: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  question: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Question',
-    required: true
-  },
-  votes: {
-    upvotes: [{
-      user: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
-      },
-      createdAt: {
-        type: Date,
-        default: Date.now
-      }
-    }],
-    downvotes: [{
-      user: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
-      },
-      createdAt: {
-        type: Date,
-        default: Date.now
-      }
-    }]
-  },
-  isAccepted: {
-    type: Boolean,
-    default: false
-  },
-  isEdited: {
-    type: Boolean,
-    default: false
-  },
-  editHistory: [{
-    editor: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
-    },
-    editedAt: {
-      type: Date,
-      default: Date.now
-    },
-    previousContent: String
-  }],
-  comments: [{
-    author: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true
-    },
-    content: {
-      type: String,
-      required: true,
-      maxlength: [500, 'Comment cannot exceed 500 characters']
-    },
-    createdAt: {
-      type: Date,
-      default: Date.now
-    },
-    isEdited: {
-      type: Boolean,
-      default: false
+  // Create a new answer
+  async create(answerData) {
+    try {
+      const { content, question_id, author_id } = answerData;
+      
+      const [result] = await this.db.execute(
+        'INSERT INTO answers (content, question_id, author_id) VALUES (?, ?, ?)',
+        [content, question_id, author_id]
+      );
+      
+      return { id: result.insertId, content, question_id, author_id };
+    } catch (error) {
+      throw error;
     }
-  }],
-  isDeleted: {
-    type: Boolean,
-    default: false
-  },
-  deletedAt: {
-    type: Date,
-    default: null
-  },
-  deletedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    default: null
   }
-}, {
-  timestamps: true
-});
 
-// Indexes for better query performance
-answerSchema.index({ question: 1, createdAt: -1 });
-answerSchema.index({ author: 1 });
-answerSchema.index({ isAccepted: 1 });
-answerSchema.index({ 'votes.upvotes': -1 });
-
-// Virtual for vote count
-answerSchema.virtual('voteCount').get(function() {
-  return this.votes.upvotes.length - this.votes.downvotes.length;
-});
-
-// Virtual for comment count
-answerSchema.virtual('commentCount').get(function() {
-  return this.comments.length;
-});
-
-// Pre-save middleware
-answerSchema.pre('save', function(next) {
-  if (this.isModified('content') && !this.isNew) {
-    this.isEdited = true;
+  // Find answer by ID with author info
+  async findById(id) {
+    try {
+      const [rows] = await this.db.execute(`
+        SELECT 
+          a.*,
+          u.username as author_username,
+          u.avatar as author_avatar,
+          u.reputation as author_reputation
+        FROM answers a
+        LEFT JOIN users u ON a.author_id = u.id
+        WHERE a.id = ? AND a.is_deleted = FALSE
+      `, [id]);
+      
+      return rows[0] || null;
+    } catch (error) {
+      throw error;
+    }
   }
-  next();
-});
 
-// Method to add vote
-answerSchema.methods.addVote = function(userId, voteType) {
-  const upvoteIndex = this.votes.upvotes.findIndex(vote => vote.user.toString() === userId.toString());
-  const downvoteIndex = this.votes.downvotes.findIndex(vote => vote.user.toString() === userId.toString());
-  
-  // Remove existing vote if any
-  if (upvoteIndex > -1) {
-    this.votes.upvotes.splice(upvoteIndex, 1);
+  // Get answers for a question
+  async findByQuestion(questionId, options = {}) {
+    try {
+      const { sort = 'votes', order = 'DESC' } = options;
+      
+      const [rows] = await this.db.execute(`
+        SELECT 
+          a.*,
+          u.username as author_username,
+          u.avatar as author_avatar,
+          u.reputation as author_reputation
+        FROM answers a
+        LEFT JOIN users u ON a.author_id = u.id
+        WHERE a.question_id = ? AND a.is_deleted = FALSE
+        ORDER BY a.${sort} ${order}, a.created_at ASC
+      `, [questionId]);
+      
+      return rows;
+    } catch (error) {
+      throw error;
+    }
   }
-  if (downvoteIndex > -1) {
-    this.votes.downvotes.splice(downvoteIndex, 1);
+
+  // Update answer
+  async update(id, updateData) {
+    try {
+      const { content } = updateData;
+      
+      if (!content) return false;
+      
+      const [result] = await this.db.execute(
+        'UPDATE answers SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [content, id]
+      );
+      
+      return result.affectedRows > 0;
+    } catch (error) {
+      throw error;
+    }
   }
-  
-  // Add new vote
-  if (voteType === 'upvote') {
-    this.votes.upvotes.push({ user: userId });
-  } else if (voteType === 'downvote') {
-    this.votes.downvotes.push({ user: userId });
+
+  // Delete answer (soft delete)
+  async delete(id) {
+    try {
+      const [result] = await this.db.execute(
+        'UPDATE answers SET is_deleted = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [id]
+      );
+      return result.affectedRows > 0;
+    } catch (error) {
+      throw error;
+    }
   }
-  
-  return this.save();
-};
 
-// Method to add comment
-answerSchema.methods.addComment = function(authorId, content) {
-  this.comments.push({
-    author: authorId,
-    content: content
-  });
-  return this.save();
-};
-
-// Method to remove comment
-answerSchema.methods.removeComment = function(commentId) {
-  this.comments = this.comments.filter(comment => comment._id.toString() !== commentId.toString());
-  return this.save();
-};
-
-// Method to edit comment
-answerSchema.methods.editComment = function(commentId, newContent) {
-  const comment = this.comments.id(commentId);
-  if (comment) {
-    comment.content = newContent;
-    comment.isEdited = true;
+  // Accept answer
+  async accept(id) {
+    try {
+      // First, unaccept all other answers for the same question
+      const [answerRows] = await this.db.execute(
+        'SELECT question_id FROM answers WHERE id = ?',
+        [id]
+      );
+      
+      if (answerRows.length === 0) return false;
+      
+      const questionId = answerRows[0].question_id;
+      
+      await this.db.execute(
+        'UPDATE answers SET is_accepted = FALSE WHERE question_id = ?',
+        [questionId]
+      );
+      
+      // Accept this answer
+      const [result] = await this.db.execute(
+        'UPDATE answers SET is_accepted = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [id]
+      );
+      
+      // Update question's accepted_answer_id
+      await this.db.execute(
+        'UPDATE questions SET accepted_answer_id = ? WHERE id = ?',
+        [id, questionId]
+      );
+      
+      return result.affectedRows > 0;
+    } catch (error) {
+      throw error;
+    }
   }
-  return this.save();
-};
 
-// Method to accept answer
-answerSchema.methods.accept = function() {
-  this.isAccepted = true;
-  return this.save();
-};
+  // Unaccept answer
+  async unaccept(id) {
+    try {
+      const [result] = await this.db.execute(
+        'UPDATE answers SET is_accepted = FALSE, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [id]
+      );
+      
+      if (result.affectedRows > 0) {
+        // Update question's accepted_answer_id to NULL
+        const [answerRows] = await this.db.execute(
+          'SELECT question_id FROM answers WHERE id = ?',
+          [id]
+        );
+        
+        if (answerRows.length > 0) {
+          await this.db.execute(
+            'UPDATE questions SET accepted_answer_id = NULL WHERE id = ?',
+            [answerRows[0].question_id]
+          );
+        }
+      }
+      
+      return result.affectedRows > 0;
+    } catch (error) {
+      throw error;
+    }
+  }
 
-// Method to unaccept answer
-answerSchema.methods.unaccept = function() {
-  this.isAccepted = false;
-  return this.save();
-};
+  // Get answers by user
+  async findByAuthor(authorId, limit = 10, offset = 0) {
+    try {
+      const [rows] = await this.db.execute(`
+        SELECT 
+          a.*,
+          q.title as question_title,
+          q.id as question_id
+        FROM answers a
+        LEFT JOIN questions q ON a.question_id = q.id
+        WHERE a.author_id = ? AND a.is_deleted = FALSE
+        ORDER BY a.created_at DESC
+        LIMIT ? OFFSET ?
+      `, [authorId, limit, offset]);
+      
+      return rows;
+    } catch (error) {
+      throw error;
+    }
+  }
 
-// Method to soft delete
-answerSchema.methods.softDelete = function(userId) {
-  this.isDeleted = true;
-  this.deletedAt = new Date();
-  this.deletedBy = userId;
-  return this.save();
-};
+  // Get accepted answers by user
+  async findAcceptedByAuthor(authorId, limit = 10, offset = 0) {
+    try {
+      const [rows] = await this.db.execute(`
+        SELECT 
+          a.*,
+          q.title as question_title,
+          q.id as question_id
+        FROM answers a
+        LEFT JOIN questions q ON a.question_id = q.id
+        WHERE a.author_id = ? AND a.is_accepted = TRUE AND a.is_deleted = FALSE
+        ORDER BY a.updated_at DESC
+        LIMIT ? OFFSET ?
+      `, [authorId, limit, offset]);
+      
+      return rows;
+    } catch (error) {
+      throw error;
+    }
+  }
 
-// Method to restore
-answerSchema.methods.restore = function() {
-  this.isDeleted = false;
-  this.deletedAt = null;
-  this.deletedBy = null;
-  return this.save();
-};
+  // Get answer count for a question
+  async getCountByQuestion(questionId) {
+    try {
+      const [rows] = await this.db.execute(
+        'SELECT COUNT(*) as count FROM answers WHERE question_id = ? AND is_deleted = FALSE',
+        [questionId]
+      );
+      
+      return rows[0].count;
+    } catch (error) {
+      throw error;
+    }
+  }
 
-// Static method to find answers by question
-answerSchema.statics.findByQuestion = function(questionId, options = {}) {
-  const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc' } = options;
-  
-  const sortOptions = {};
-  sortOptions[sortBy] = sortOrder === 'desc' ? -1 : 1;
-  
-  return this.find({ 
-    question: questionId, 
-    isDeleted: false 
-  })
-    .populate('author', 'username avatar reputation')
-    .populate('comments.author', 'username avatar')
-    .sort(sortOptions)
-    .skip((page - 1) * limit)
-    .limit(limit);
-};
+  // Get answer count by user
+  async getCountByAuthor(authorId) {
+    try {
+      const [rows] = await this.db.execute(
+        'SELECT COUNT(*) as count FROM answers WHERE author_id = ? AND is_deleted = FALSE',
+        [authorId]
+      );
+      
+      return rows[0].count;
+    } catch (error) {
+      throw error;
+    }
+  }
 
-// Static method to find accepted answer for a question
-answerSchema.statics.findAcceptedByQuestion = function(questionId) {
-  return this.findOne({ 
-    question: questionId, 
-    isAccepted: true, 
-    isDeleted: false 
-  })
-    .populate('author', 'username avatar reputation');
-};
+  // Get accepted answer count by user
+  async getAcceptedCountByAuthor(authorId) {
+    try {
+      const [rows] = await this.db.execute(
+        'SELECT COUNT(*) as count FROM answers WHERE author_id = ? AND is_accepted = TRUE AND is_deleted = FALSE',
+        [authorId]
+      );
+      
+      return rows[0].count;
+    } catch (error) {
+      throw error;
+    }
+  }
 
-module.exports = mongoose.model('Answer', answerSchema); 
+  // Check if user has answered a question
+  async hasUserAnswered(questionId, userId) {
+    try {
+      const [rows] = await this.db.execute(
+        'SELECT id FROM answers WHERE question_id = ? AND author_id = ? AND is_deleted = FALSE',
+        [questionId, userId]
+      );
+      
+      return rows.length > 0;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Get best answers (most voted)
+  async getBestAnswers(limit = 10) {
+    try {
+      const [rows] = await this.db.execute(`
+        SELECT 
+          a.*,
+          u.username as author_username,
+          u.avatar as author_avatar,
+          q.title as question_title,
+          q.id as question_id
+        FROM answers a
+        LEFT JOIN users u ON a.author_id = u.id
+        LEFT JOIN questions q ON a.question_id = q.id
+        WHERE a.is_deleted = FALSE AND a.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+        ORDER BY a.votes DESC
+        LIMIT ?
+      `, [limit]);
+      
+      return rows;
+    } catch (error) {
+      throw error;
+    }
+  }
+}
+
+module.exports = Answer; 

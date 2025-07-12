@@ -1,240 +1,287 @@
--- Database setup for Login System
--- Run this script in phpMyAdmin to create the database structure
+-- StackIt Database Setup
+-- MySQL Database Schema for Q&A Platform
 
--- Create database if it doesn't exist
-CREATE DATABASE IF NOT EXISTS login_system CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- Create database
+CREATE DATABASE IF NOT EXISTS stackit CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE stackit;
 
--- Use the database
-USE login_system;
-
--- Drop tables if they exist (for clean setup)
-DROP TABLE IF EXISTS user_sessions;
-DROP TABLE IF EXISTS login_attempts;
-DROP TABLE IF EXISTS users;
-
--- Create users table
+-- Users table
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) NOT NULL UNIQUE,
-    email VARCHAR(100) NOT NULL UNIQUE,
+    username VARCHAR(30) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
-    first_name VARCHAR(50),
-    last_name VARCHAR(50),
-    is_admin BOOLEAN DEFAULT FALSE,
+    role ENUM('guest', 'user', 'admin') DEFAULT 'user',
+    bio TEXT,
+    avatar VARCHAR(255),
+    reputation INT DEFAULT 0,
     is_active BOOLEAN DEFAULT TRUE,
     email_verified BOOLEAN DEFAULT FALSE,
-    verification_token VARCHAR(255),
-    reset_token VARCHAR(255),
-    reset_token_expires DATETIME,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    last_login DATETIME,
-    INDEX idx_email (email),
+    last_login TIMESTAMP NULL,
     INDEX idx_username (username),
-    INDEX idx_is_active (is_active)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    INDEX idx_email (email),
+    INDEX idx_role (role)
+);
 
--- Create user_sessions table for session management
+-- Tags table
+CREATE TABLE tags (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(30) UNIQUE NOT NULL,
+    description TEXT,
+    usage_count INT DEFAULT 0,
+    questions_count INT DEFAULT 0,
+    synonyms JSON,
+    related_tags JSON,
+    is_moderated BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_name (name),
+    INDEX idx_usage_count (usage_count)
+);
+
+-- Questions table
+CREATE TABLE questions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(200) NOT NULL,
+    description TEXT NOT NULL,
+    author_id INT NOT NULL,
+    status ENUM('open', 'closed', 'duplicate', 'off_topic') DEFAULT 'open',
+    views INT DEFAULT 0,
+    votes INT DEFAULT 0,
+    accepted_answer_id INT NULL,
+    is_deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_author_id (author_id),
+    INDEX idx_status (status),
+    INDEX idx_created_at (created_at),
+    INDEX idx_votes (votes),
+    INDEX idx_views (views)
+);
+
+-- Question tags relationship table
+CREATE TABLE question_tags (
+    question_id INT NOT NULL,
+    tag_id INT NOT NULL,
+    PRIMARY KEY (question_id, tag_id),
+    FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+);
+
+-- Answers table
+CREATE TABLE answers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    content TEXT NOT NULL,
+    question_id INT NOT NULL,
+    author_id INT NOT NULL,
+    is_accepted BOOLEAN DEFAULT FALSE,
+    votes INT DEFAULT 0,
+    is_deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE,
+    FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_question_id (question_id),
+    INDEX idx_author_id (author_id),
+    INDEX idx_is_accepted (is_accepted),
+    INDEX idx_votes (votes)
+);
+
+-- Comments table
+CREATE TABLE comments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    content TEXT NOT NULL,
+    answer_id INT NOT NULL,
+    author_id INT NOT NULL,
+    is_deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (answer_id) REFERENCES answers(id) ON DELETE CASCADE,
+    FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_answer_id (answer_id),
+    INDEX idx_author_id (author_id)
+);
+
+-- Votes table
+CREATE TABLE votes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    target_type ENUM('question', 'answer') NOT NULL,
+    target_id INT NOT NULL,
+    vote_type ENUM('upvote', 'downvote') NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_vote (user_id, target_type, target_id),
+    INDEX idx_target (target_type, target_id),
+    INDEX idx_user_id (user_id)
+);
+
+-- Notifications table
+CREATE TABLE notifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    recipient_id INT NOT NULL,
+    sender_id INT NULL,
+    type VARCHAR(50) NOT NULL,
+    title VARCHAR(100) NOT NULL,
+    message TEXT NOT NULL,
+    data JSON,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_recipient_id (recipient_id),
+    INDEX idx_is_read (is_read),
+    INDEX idx_created_at (created_at)
+);
+
+-- User sessions table
 CREATE TABLE user_sessions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    session_token VARCHAR(255) NOT NULL UNIQUE,
-    remember_token VARCHAR(255),
+    session_token VARCHAR(255) UNIQUE NOT NULL,
+    remember_token VARCHAR(255) NULL,
     ip_address VARCHAR(45),
     user_agent TEXT,
     is_active BOOLEAN DEFAULT TRUE,
+    expires_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    expires_at DATETIME NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_session_token (session_token),
+    INDEX idx_remember_token (remember_token),
     INDEX idx_user_id (user_id),
     INDEX idx_expires_at (expires_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
--- Create login_attempts table for security
+-- Login attempts table
 CREATE TABLE login_attempts (
     id INT AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(100) NOT NULL,
-    ip_address VARCHAR(45) NOT NULL,
+    ip_address VARCHAR(45),
     user_agent TEXT,
-    success BOOLEAN DEFAULT FALSE,
+    success BOOLEAN NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_email_ip (email, ip_address),
+    INDEX idx_email (email),
+    INDEX idx_ip_address (ip_address),
     INDEX idx_created_at (created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
--- Insert sample users (passwords are hashed with password_hash())
--- Default password for all users: password123
-INSERT INTO users (username, email, password, first_name, last_name, is_admin, email_verified) VALUES
-('admin', 'admin@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Admin', 'User', TRUE, TRUE),
-('user', 'user@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Regular', 'User', FALSE, TRUE),
-('john_doe', 'john@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'John', 'Doe', FALSE, TRUE),
-('jane_smith', 'jane@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Jane', 'Smith', FALSE, TRUE);
+-- Insert sample data
+INSERT INTO users (username, email, password, role, bio) VALUES
+('admin', 'admin@stackit.com', 'admin123', 'admin', 'StackIt Administrator'),
+('john_doe', 'john@example.com', 'john123', 'user', 'Software Developer'),
+('jane_smith', 'jane@example.com', 'jane123', 'user', 'Web Designer');
 
--- Create stored procedures for common operations
+INSERT INTO tags (name, description) VALUES
+('javascript', 'JavaScript programming language'),
+('nodejs', 'Node.js runtime environment'),
+('react', 'React.js library'),
+('sql', 'Structured Query Language'),
+('mongodb', 'MongoDB database'),
+('express', 'Express.js framework');
 
--- Procedure to authenticate user
+-- Create stored procedures
 DELIMITER //
-CREATE PROCEDURE AuthenticateUser(
-    IN p_email VARCHAR(100),
-    IN p_password VARCHAR(255)
-)
+
+-- Procedure to update question stats
+CREATE PROCEDURE UpdateQuestionStats(IN question_id INT)
 BEGIN
-    DECLARE user_id INT;
-    DECLARE user_password VARCHAR(255);
-    DECLARE user_is_admin BOOLEAN;
-    DECLARE user_is_active BOOLEAN;
-    
-    SELECT id, password, is_admin, is_active 
-    INTO user_id, user_password, user_is_admin, user_is_active
-    FROM users 
-    WHERE email = p_email;
-    
-    IF user_id IS NOT NULL AND user_is_active = TRUE THEN
-        IF p_password = user_password THEN -- In production, use password_verify()
-            -- Update last login
-            UPDATE users SET last_login = NOW() WHERE id = user_id;
-            
-            -- Return user data
-            SELECT 
-                id, username, email, first_name, last_name, 
-                is_admin, email_verified, created_at
-            FROM users 
-            WHERE id = user_id;
-        ELSE
-            SELECT NULL as id;
-        END IF;
-    ELSE
-        SELECT NULL as id;
-    END IF;
+    UPDATE questions q
+    SET 
+        views = (SELECT COUNT(*) FROM question_views WHERE question_id = q.id),
+        votes = (SELECT COALESCE(SUM(CASE WHEN vote_type = 'upvote' THEN 1 ELSE -1 END), 0) 
+                FROM votes WHERE target_type = 'question' AND target_id = q.id)
+    WHERE q.id = question_id;
 END //
+
+-- Procedure to update answer stats
+CREATE PROCEDURE UpdateAnswerStats(IN answer_id INT)
+BEGIN
+    UPDATE answers a
+    SET 
+        votes = (SELECT COALESCE(SUM(CASE WHEN vote_type = 'upvote' THEN 1 ELSE -1 END), 0) 
+                FROM votes WHERE target_type = 'answer' AND target_id = a.id)
+    WHERE a.id = answer_id;
+END //
+
+-- Procedure to update user reputation
+CREATE PROCEDURE UpdateUserReputation(IN user_id INT)
+BEGIN
+    UPDATE users u
+    SET reputation = (
+        SELECT COALESCE(SUM(
+            CASE 
+                WHEN v.vote_type = 'upvote' THEN 10
+                WHEN v.vote_type = 'downvote' THEN -2
+                ELSE 0
+            END
+        ), 0)
+        FROM votes v
+        WHERE v.user_id = u.id
+    )
+    WHERE u.id = user_id;
+END //
+
 DELIMITER ;
 
--- Procedure to create session
-DELIMITER //
-CREATE PROCEDURE CreateSession(
-    IN p_user_id INT,
-    IN p_session_token VARCHAR(255),
-    IN p_remember_token VARCHAR(255),
-    IN p_ip_address VARCHAR(45),
-    IN p_user_agent TEXT,
-    IN p_expires_at DATETIME
-)
-BEGIN
-    INSERT INTO user_sessions (
-        user_id, session_token, remember_token, 
-        ip_address, user_agent, expires_at
-    ) VALUES (
-        p_user_id, p_session_token, p_remember_token,
-        p_ip_address, p_user_agent, p_expires_at
-    );
-END //
-DELIMITER ;
-
--- Procedure to validate session
-DELIMITER //
-CREATE PROCEDURE ValidateSession(
-    IN p_session_token VARCHAR(255)
-)
-BEGIN
-    SELECT 
-        us.id as session_id,
-        us.user_id,
-        us.remember_token,
-        us.expires_at,
-        u.username,
-        u.email,
-        u.is_admin,
-        u.is_active
-    FROM user_sessions us
-    JOIN users u ON us.user_id = u.id
-    WHERE us.session_token = p_session_token 
-    AND us.is_active = TRUE 
-    AND us.expires_at > NOW();
-END //
-DELIMITER ;
-
--- Procedure to log login attempt
-DELIMITER //
-CREATE PROCEDURE LogLoginAttempt(
-    IN p_email VARCHAR(100),
-    IN p_ip_address VARCHAR(45),
-    IN p_user_agent TEXT,
-    IN p_success BOOLEAN
-)
-BEGIN
-    INSERT INTO login_attempts (email, ip_address, user_agent, success)
-    VALUES (p_email, p_ip_address, p_user_agent, p_success);
-END //
-DELIMITER ;
-
--- Create views for easier data access
-
--- View for active sessions
-CREATE VIEW active_sessions AS
+-- Create views
+CREATE VIEW question_stats AS
 SELECT 
-    us.id as session_id,
-    us.session_token,
-    us.remember_token,
-    us.created_at as session_created,
-    us.expires_at,
-    u.id as user_id,
+    q.id,
+    q.title,
+    q.views,
+    q.votes,
+    COUNT(a.id) as answer_count,
+    u.username as author,
+    GROUP_CONCAT(t.name) as tags
+FROM questions q
+LEFT JOIN users u ON q.author_id = u.id
+LEFT JOIN answers a ON q.id = a.question_id AND a.is_deleted = FALSE
+LEFT JOIN question_tags qt ON q.id = qt.question_id
+LEFT JOIN tags t ON qt.tag_id = t.id
+WHERE q.is_deleted = FALSE
+GROUP BY q.id;
+
+CREATE VIEW user_stats AS
+SELECT 
+    u.id,
     u.username,
-    u.email,
-    u.is_admin
-FROM user_sessions us
-JOIN users u ON us.user_id = u.id
-WHERE us.is_active = TRUE AND us.expires_at > NOW();
+    u.reputation,
+    COUNT(DISTINCT q.id) as questions_asked,
+    COUNT(DISTINCT a.id) as answers_given,
+    COUNT(DISTINCT v.id) as votes_received
+FROM users u
+LEFT JOIN questions q ON u.id = q.author_id AND q.is_deleted = FALSE
+LEFT JOIN answers a ON u.id = a.author_id AND a.is_deleted = FALSE
+LEFT JOIN votes v ON (v.target_type = 'question' AND v.target_id = q.id) 
+                  OR (v.target_type = 'answer' AND v.target_id = a.id)
+GROUP BY u.id;
 
--- View for recent login attempts
-CREATE VIEW recent_login_attempts AS
-SELECT 
-    email,
-    ip_address,
-    success,
-    created_at,
-    CASE 
-        WHEN success = TRUE THEN 'Success'
-        ELSE 'Failed'
-    END as status
-FROM login_attempts
-WHERE created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)
-ORDER BY created_at DESC;
+-- Create indexes for better performance
+CREATE INDEX idx_questions_created_at ON questions(created_at);
+CREATE INDEX idx_answers_created_at ON answers(created_at);
+CREATE INDEX idx_comments_created_at ON comments(created_at);
+CREATE INDEX idx_notifications_recipient_read ON notifications(recipient_id, is_read);
 
--- Create triggers for data integrity
-
--- Trigger to update updated_at timestamp
-DELIMITER //
-CREATE TRIGGER update_users_timestamp
-BEFORE UPDATE ON users
-FOR EACH ROW
-BEGIN
-    SET NEW.updated_at = CURRENT_TIMESTAMP;
-END //
-DELIMITER ;
-
--- Trigger to clean up expired sessions
-DELIMITER //
-CREATE EVENT cleanup_expired_sessions
+-- Create events for cleanup
+CREATE EVENT IF NOT EXISTS cleanup_expired_sessions
 ON SCHEDULE EVERY 1 HOUR
 DO
-BEGIN
-    UPDATE user_sessions 
-    SET is_active = FALSE 
-    WHERE expires_at < NOW() AND is_active = TRUE;
-    
-    DELETE FROM login_attempts 
-    WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY);
-END //
-DELIMITER ;
+    DELETE FROM user_sessions WHERE expires_at < NOW();
+
+CREATE EVENT IF NOT EXISTS cleanup_old_login_attempts
+ON SCHEDULE EVERY 1 DAY
+DO
+    DELETE FROM login_attempts WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY);
+
+-- Enable events
+SET GLOBAL event_scheduler = ON;
 
 -- Grant permissions (adjust as needed)
--- GRANT SELECT, INSERT, UPDATE, DELETE ON login_system.* TO 'your_username'@'localhost';
+-- GRANT ALL PRIVILEGES ON stackit.* TO 'stackit_user'@'localhost';
+-- FLUSH PRIVILEGES;
 
--- Show table structure
-DESCRIBE users;
-DESCRIBE user_sessions;
-DESCRIBE login_attempts;
-
--- Show sample data
-SELECT id, username, email, is_admin, created_at FROM users; 
+-- Show tables
+SHOW TABLES; 

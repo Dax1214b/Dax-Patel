@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Ad Astra</title>
+    <title>Dashboard - StackIt</title>
     <link rel="stylesheet" href="styles1.css">
     <style>
         .dashboard-container {
-            max-width: 800px;
+            max-width: 1200px;
             margin: 2rem auto;
             padding: 2rem;
             background: rgba(13, 17, 23, 0.8);
@@ -26,7 +26,7 @@
         }
 
         .user-info h3 {
-            color: #4a90e2;
+            color: #667eea;
             margin-bottom: 1rem;
             font-size: 1.5rem;
         }
@@ -69,7 +69,7 @@
         }
 
         .user-badge {
-            background: linear-gradient(45deg, #4a90e2, #357abd);
+            background: linear-gradient(45deg, #667eea, #764ba2);
             color: white;
             padding: 0.3rem 0.8rem;
             border-radius: 20px;
@@ -103,7 +103,7 @@
             color: #fff;
             font-size: 2.5rem;
             margin-bottom: 0.5rem;
-            text-shadow: 0 0 10px rgba(74, 144, 226, 0.5);
+            text-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
         }
 
         .welcome-message p {
@@ -125,12 +125,74 @@
             border-radius: 8px;
             text-align: center;
         }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .action-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1.5rem;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .action-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+
+        .action-card h4 {
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .action-card p {
+            color: #ccc;
+            font-size: 0.9rem;
+        }
+
+        .stats-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1.5rem;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #f093fb;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #ccc;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
     </style>
 </head>
 <body>
     <div class="dashboard-container">
         <div id="loading" class="loading">
-            Loading dashboard...
+            Loading StackIt dashboard...
         </div>
 
         <div id="error" class="error-message" style="display: none;">
@@ -139,8 +201,42 @@
 
         <div id="dashboard" style="display: none;">
             <div class="welcome-message">
-                <h1>Welcome to Ad Astra</h1>
-                <p>Your journey through the stars begins here</p>
+                <h1>Welcome to StackIt</h1>
+                <p>Your Q&A community dashboard</p>
+            </div>
+
+            <div class="quick-actions">
+                <div class="action-card" onclick="window.location.href='/questions'">
+                    <h4>Ask a Question</h4>
+                    <p>Share your knowledge or get help from the community</p>
+                </div>
+                <div class="action-card" onclick="window.location.href='/questions'">
+                    <h4>Browse Questions</h4>
+                    <p>Explore questions and answers from other users</p>
+                </div>
+                <div class="action-card" onclick="window.location.href='/answers'">
+                    <h4>View Answers</h4>
+                    <p>Check out the latest answers and discussions</p>
+                </div>
+            </div>
+
+            <div class="stats-section">
+                <div class="stat-card">
+                    <div class="stat-number" id="questionsCount">-</div>
+                    <div class="stat-label">Questions Asked</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="answersCount">-</div>
+                    <div class="stat-label">Answers Given</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="reputation">-</div>
+                    <div class="stat-label">Reputation</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="votesReceived">-</div>
+                    <div class="stat-label">Votes Received</div>
+                </div>
             </div>
 
             <div class="user-info">
@@ -172,9 +268,17 @@
         // Check authentication and load user data
         async function loadDashboard() {
             try {
-                const response = await fetch('/api/check-session', {
+                const token = localStorage.getItem('stackit_token');
+                if (!token) {
+                    throw new Error('No token found');
+                }
+
+                const response = await fetch('/api/auth/me', {
                     method: 'GET',
-                    credentials: 'include'
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
                 });
                 
                 const data = await response.json();
@@ -187,24 +291,21 @@
                     // Populate user data
                     document.getElementById('username').textContent = data.user.username;
                     document.getElementById('email').textContent = data.user.email;
-                    document.getElementById('userId').textContent = data.user.id;
+                    document.getElementById('userId').textContent = data.user._id || data.user.id;
                     
                     // Set role with badge
                     const roleElement = document.getElementById('role');
-                    if (data.user.is_admin) {
+                    if (data.user.role === 'admin') {
                         roleElement.innerHTML = '<span class="admin-badge">Administrator</span>';
                     } else {
                         roleElement.innerHTML = '<span class="user-badge">User</span>';
                     }
+
+                    // Load user stats
+                    await loadUserStats();
                     
                 } else {
-                    // Not logged in, show error and redirect
-                    document.getElementById('loading').style.display = 'none';
-                    document.getElementById('error').style.display = 'block';
-                    
-                    setTimeout(() => {
-                        window.location.href = '/login.html';
-                    }, 2000);
+                    throw new Error('Authentication failed');
                 }
                 
             } catch (error) {
@@ -213,33 +314,56 @@
                 document.getElementById('error').style.display = 'block';
                 
                 setTimeout(() => {
-                    window.location.href = '/login.html';
+                    window.location.href = '/login';
                 }, 2000);
             }
         }
 
-        // Logout function
-        async function logout() {
+        async function loadUserStats() {
             try {
-                const response = await fetch('/api/logout', {
-                    method: 'POST',
-                    credentials: 'include'
+                const token = localStorage.getItem('stackit_token');
+                const response = await fetch('/api/users/me/stats', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
                 });
                 
                 const data = await response.json();
-                
                 if (data.success) {
-                    // Clear any local storage
-                    localStorage.clear();
-                    sessionStorage.clear();
-                    
-                    // Redirect to login
-                    window.location.href = '/login.html';
+                    document.getElementById('questionsCount').textContent = data.stats.questionsCount || 0;
+                    document.getElementById('answersCount').textContent = data.stats.answersCount || 0;
+                    document.getElementById('reputation').textContent = data.stats.reputation || 0;
+                    document.getElementById('votesReceived').textContent = data.stats.votesReceived || 0;
+                }
+            } catch (error) {
+                console.error('Stats load error:', error);
+                // Set default values if stats fail to load
+                document.getElementById('questionsCount').textContent = '0';
+                document.getElementById('answersCount').textContent = '0';
+                document.getElementById('reputation').textContent = '0';
+                document.getElementById('votesReceived').textContent = '0';
+            }
+        }
+
+        async function logout() {
+            try {
+                const token = localStorage.getItem('stackit_token');
+                if (token) {
+                    await fetch('/api/auth/logout', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
                 }
             } catch (error) {
                 console.error('Logout error:', error);
-                // Force redirect even if logout fails
-                window.location.href = '/login.html';
+            } finally {
+                localStorage.removeItem('stackit_token');
+                localStorage.removeItem('stackit_user');
+                window.location.href = '/login';
             }
         }
 

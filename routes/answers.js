@@ -3,7 +3,7 @@ const router = express.Router();
 const Answer = require('../models/Answer');
 const Question = require('../models/Question');
 const Notification = require('../models/Notification');
-const { auth, userAuth, adminAuth, verifyOwnership } = require('../middleware/auth');
+const { auth, optionalAuth, userAuth, adminAuth, verifyOwnership } = require('../middleware/auth');
 const { answerValidation, commentValidation, voteValidation, paginationValidation } = require('../middleware/validation');
 const { asyncHandler } = require('../middleware/errorHandler');
 

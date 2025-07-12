@@ -427,9 +427,9 @@
     <header class="header">
         <div class="logo-container">
             <div class="logo-icon"></div>
-            <a href="#" class="logo">StackIt</a>
-        </div>
-        <button class="login-btn">Login</button>
+                    <a href="/" class="logo">StackIt</a>
+      </div>
+      <button class="login-btn" onclick="window.location.href='/login'">Login</button>
     </header>
 
     <main class="main-content">
@@ -610,13 +610,11 @@ function renderQuestions() {
                 ${q.tags.map(tag => `<span class=\"question-tag\">${tag}</span>`).join('')}
             </div>
         `;
-        // Make only the first card clickable
-        if (i === 0) {
-            card.style.cursor = 'pointer';
-            card.addEventListener('click', () => {
-                window.location.href = 'ans.html';
-            });
-        }
+        // Make all cards clickable
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', () => {
+            window.location.href = '/answers';
+        });
         list.appendChild(card);
     });
 }
@@ -627,13 +625,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const askBtn = document.querySelector('.action-card .action-btn');
     if (askBtn) {
         askBtn.onclick = function() {
-            window.location.href = 'que.html';
+            window.location.href = '/questions';
         };
     }
 });
 
 document.getElementById('ask-question-btn').onclick = function() {
-    window.location.href = 'que.html';
+    window.location.href = '/questions';
 };
 </script>
 
@@ -648,7 +646,11 @@ document.getElementById('ask-question-btn').onclick = function() {
         document.querySelectorAll('.action-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 if (this.textContent.includes('Ask Question')) {
-                    alert('Ask New Question functionality will be implemented here!');
+                    window.location.href = '/questions';
+                } else if (this.textContent.includes('Browse Questions')) {
+                    window.location.href = '/questions';
+                } else if (this.textContent.includes('Search')) {
+                    document.querySelector('.search-input').focus();
                 }
             });
         });
@@ -682,13 +684,8 @@ document.getElementById('ask-question-btn').onclick = function() {
             searchBtn.style.pointerEvents = 'none';
             searchBtn.innerHTML = '⏳';
             
-            setTimeout(() => {
-                alert(`Searching for: "${searchTerm}"\n\nThis would typically:\n• Search through all questions\n• Filter by relevance\n• Show real-time results\n• Display related topics`);
-                
-                // Reset button
-                searchBtn.innerHTML = '';
-                searchBtn.style.pointerEvents = 'auto';
-            }, 1000);
+            // Redirect to questions page with search parameter
+            window.location.href = `/questions?search=${encodeURIComponent(searchTerm)}`;
         }
 
         // Add more particles dynamically
