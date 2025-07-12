@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StackIt - Answer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            min-height: 100vh;
+            margin: 0;
+        }
+        .header {
+            background: rgba(15, 12, 41, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1.2rem 2.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-decoration: none;
+            letter-spacing: 2px;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1.2rem;
+        }
+        .home-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.3rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            font-family: 'Inter', sans-serif;
+            transition: background 0.2s;
+        }
+        .home-btn:hover {
+            background: linear-gradient(135deg, #764ba2, #667eea);
+        }
+        .profile-img {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #fff;
+            background: #eee;
+        }
+        .main-content {
+            max-width: 900px;
+            margin: 2.5rem auto 0 auto;
+            background: rgba(255,255,255,0.07);
+            border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+            padding: 2rem 2rem 1rem 2rem;
+        }
+        .question-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 0.5rem;
+        }
+        .question-meta {
+            display: flex;
+            align-items: center;
+            gap: 1.2rem;
+            font-size: 0.98rem;
+            color: #bdbdbd;
+            margin-bottom: 1.2rem;
+        }
+        .question-meta .user {
+            font-weight: 600;
+            color: #a3bffa;
+        }
+        .question-meta .time {
+            font-size: 0.95rem;
+            color: #bdbdbd;
+        }
+        .question-tags {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.2rem;
+        }
+        .question-tag {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            border-radius: 6px;
+            padding: 0.2rem 0.7rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .question-body {
+            color: #e0e0e0;
+            font-size: 1.05rem;
+            margin-bottom: 2rem;
+        }
+        .breadcrumb {
+            color: #a3bffa;
+            font-size: 0.98rem;
+            margin-bottom: 0.7rem;
+            letter-spacing: 0.5px;
+        }
+        .divider {
+            border: none;
+            border-top: 1px solid rgba(255,255,255,0.13);
+            margin: 2rem 0 1.5rem 0;
+        }
+        .answers-section {
+            margin-bottom: 2rem;
+        }
+        .answers-header {
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 1.2rem;
+        }
+        .answer-card {
+            background: rgba(255,255,255,0.10);
+            border-radius: 10px;
+            padding: 1.1rem 1.2rem 1rem 1.2rem;
+            margin-bottom: 1.2rem;
+            display: flex;
+            gap: 1.2rem;
+            align-items: flex-start;
+        }
+        .vote-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.2rem;
+            font-size: 1.1rem;
+            color: #a3bffa;
+            user-select: none;
+        }
+        .vote-btn {
+            background: none;
+            border: none;
+            color: #a3bffa;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0;
+            transition: color 0.2s;
+        }
+        .vote-btn:hover {
+            color: #fff;
+        }
+        .answer-content {
+            flex: 1;
+        }
+        .answer-title {
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 0.2rem;
+        }
+        .answer-details {
+            color: #e0e0e0;
+            font-size: 0.98rem;
+            margin-bottom: 0.2rem;
+        }
+        .submit-answer-section {
+            margin-top: 2rem;
+        }
+        .submit-answer-section h4 {
+            color: #fff;
+            font-size: 1.08rem;
+            margin-bottom: 0.7rem;
+        }
+        .answer-input {
+            width: 100%;
+            border-radius: 8px;
+            border: 1px solid #a3bffa;
+            padding: 1rem;
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            margin-bottom: 1rem;
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+            resize: vertical;
+            outline: none;
+            transition: border 0.2s;
+        }
+        .answer-input:focus {
+            border: 1.5px solid #764ba2;
+        }
+        .submit-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 0.7rem 2.2rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .submit-btn:hover {
+            background: linear-gradient(135deg, #764ba2, #667eea);
+        }
+        @media (max-width: 600px) {
+            .main-content {
+                padding: 1rem 0.5rem 0.5rem 0.5rem;
+            }
+            .answer-card {
+                flex-direction: column;
+                gap: 0.5rem;
+                padding: 0.7rem 0.7rem 0.7rem 0.7rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <a href="#" class="logo">StackIt</a>
+        <div class="header-right">
+            <a href="index.html" class="home-btn">Home</a>
+            <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Profile" class="profile-img" />
+        </div>
+    </header>
+    <main class="main-content">
+        <div class="breadcrumb" id="breadcrumb"></div>
+        <div class="question-title" id="ans-title"></div>
+        <div class="question-meta">
+            <span class="user" id="ans-user"></span>
+            <span class="time" id="ans-time"></span>
+        </div>
+        <div class="question-tags" id="ans-tags"></div>
+        <div class="question-body" id="ans-body"></div>
+        <hr class="divider">
+        <div class="answers-section">
+            <h3 class="answers-header">Answers</h3>
+            <div id="answers-list"></div>
+        </div>
+        <hr class="divider">
+        <div class="submit-answer-section">
+            <h4>Submit Your Answer</h4>
+            <form id="answer-form">
+                <textarea id="answer-input" class="answer-input" rows="5" placeholder="Write your answer..."></textarea>
+                <button type="submit" class="submit-btn">Submit</button>
+            </form>
+        </div>
+    </main>
+    <script>
+    // For now, static data matching the first question in index.html
+    const question = {
+        title: "How to join 2 columns in a data set to make a separate column in SQL?",
+        user: "UserOne",
+        time: "2 hours ago",
+        tags: ["SQL", "Database", "Join"],
+        body: `I want to combine two fields for a list in one logspace. As an example, I want to do this for the first n columns containing first name and last name. I want a column that consists of last name & next column as location, etc.`
+    };
+    document.getElementById('ans-title').textContent = question.title;
+    document.getElementById('ans-user').textContent = question.user;
+    document.getElementById('ans-time').textContent = question.time;
+    document.getElementById('ans-tags').innerHTML = question.tags.map(tag => `<span class='question-tag'>${tag}</span>`).join('');
+    document.getElementById('ans-body').textContent = question.body;
+
+    const answers = [
+        {
+            votes: 2,
+            title: "Answer 1",
+            details: "The || Operator. The CONCAT Function.",
+        },
+        {
+            votes: 0,
+            title: "Answer 2",
+            details: "Details",
+        }
+    ];
+    function renderAnswers() {
+        const list = document.getElementById('answers-list');
+        list.innerHTML = '';
+        answers.forEach((a, i) => {
+            const card = document.createElement('div');
+            card.className = 'answer-card';
+            card.innerHTML = `
+                <div class="vote-section">
+                    <button class="vote-btn" title="Upvote">&#9650;</button>
+                    <div class="vote-count">${a.votes}</div>
+                    <button class="vote-btn" title="Downvote">&#9660;</button>
+                </div>
+                <div class="answer-content">
+                    <div class="answer-title">${a.title}</div>
+                    <div class="answer-details">${a.details}</div>
+                </div>
+            `;
+            list.appendChild(card);
+        });
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+        renderQuestions(); // already present for question
+        renderAnswers();
+        // Breadcrumb
+        document.getElementById('breadcrumb').textContent = 'Home > Questions > How to join 2...';
+        // Handle answer form
+        document.getElementById('answer-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const val = document.getElementById('answer-input').value.trim();
+            if(val) {
+                answers.push({votes: 0, title: `Answer ${answers.length+1}`, details: val});
+                renderAnswers();
+                this.reset();
+            }
+        });
+    });
+    </script>
+</body>
+</html> 
