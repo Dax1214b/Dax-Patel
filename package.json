@@ -8,12 +8,12 @@
     "dev": "nodemon server.js",
     "test": "jest"
   },
-  "keywords": ["qa", "forum", "stackit", "nodejs", "express", "mongodb"],
+  "keywords": ["qa", "forum", "stackit", "nodejs", "express", "mysql"],
   "author": "Pixel Pioneers",
   "license": "MIT",
   "dependencies": {
     "express": "^4.18.2",
-    "mongoose": "^7.5.0",
+    "mysql2": "^3.6.0",
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.2",
     "cors": "^2.8.5",

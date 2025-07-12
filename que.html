@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Ask a Question – StackIt</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Google Fonts for Inter and JetBrains Mono -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Inter", sans-serif;
+        background: linear-gradient(
+          135deg,
+          #0f0c29 0%,
+          #302b63 50%,
+          #24243e 100%
+        );
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+      /* Animated background particles */
+      .particles {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1;
+      }
+      .particle {
+        position: absolute;
+        width: 2px;
+        height: 2px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        animation: float 6s infinite ease-in-out;
+      }
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0px) rotate(0deg);
+          opacity: 0;
+        }
+        50% {
+          transform: translateY(-20px) rotate(180deg);
+          opacity: 1;
+        }
+      }
+      .header {
+        background: rgba(15, 12, 41, 0.95);
+        backdrop-filter: blur(20px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 1.5rem 3rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      }
+      .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+      .logo-icon {
+        width: 50px;
+        height: 50px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        animation: pulse 2s infinite;
+        position: relative;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.05);
+        }
+      }
+      .logo-icon::before {
+        content: "S";
+        color: white;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 1.5rem;
+        font-weight: 700;
+      }
+      .logo {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 2.5rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-decoration: none;
+        letter-spacing: 3px;
+      }
+      .nav-right {
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+      }
+      .nav-link {
+        text-decoration: none;
+        color: #bfc7e1;
+        font-size: 1.15rem;
+        font-weight: 600;
+        transition: color 0.2s;
+        border-bottom: 2px solid transparent;
+        padding-bottom: 2px;
+        letter-spacing: 1px;
+      }
+      .nav-link:hover {
+        color: #f093fb;
+        border-bottom: 2px solid #f093fb;
+      }
+      .notification-btn {
+        background: none;
+        border: none;
+        position: relative;
+        cursor: pointer;
+        font-size: 1.6rem;
+        color: #f093fb;
+        transition: transform 0.15s;
+        display: flex;
+        align-items: center;
+      }
+      .notification-btn:hover {
+        transform: scale(1.15) rotate(-10deg);
+        color: #667eea;
+      }
+      .notif-count {
+        position: absolute;
+        top: -6px;
+        right: -8px;
+        background: #f093fb;
+        color: #fff;
+        border-radius: 50%;
+        font-size: 0.7rem;
+        padding: 2px 6px;
+        box-shadow: 0 2px 6px #f093fb55;
+      }
+      .profile-pic {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2.5px solid #667eea;
+        box-shadow: 0 2px 8px #667eea33;
+        transition: border 0.2s;
+      }
+      .profile-pic:hover {
+        border-color: #f093fb;
+      }
+      /* Ask Question Card */
+      .ask-container {
+        max-width: 800px;
+        margin: 4rem auto 2rem auto;
+        background: rgba(30, 34, 51, 0.85);
+        border-radius: 28px;
+        box-shadow: 0 8px 40px 0 #23243a55, 0 1.5px 8px #764ba222;
+        padding: 2.7rem 3.5rem 2.2rem 3.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.2rem;
+        backdrop-filter: blur(18px);
+        border: 2.5px solid rgba(102, 126, 234, 0.25);
+        position: relative;
+        overflow: hidden;
+        z-index: 2;
+      }
+      .ask-container::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 28px;
+        padding: 2px;
+        background: linear-gradient(120deg, #667eea 0%, #764ba2 100%);
+        z-index: 0;
+        opacity: 0.13;
+        pointer-events: none;
+      }
+      .ask-container h2 {
+        margin: 0 0 1.5rem 0;
+        font-weight: 800;
+        color: #fff;
+        letter-spacing: 0.5px;
+        text-align: left;
+        font-size: 2.1rem;
+        text-shadow: 0 2px 8px #667eea33;
+        position: relative;
+        z-index: 1;
+      }
+      .ask-form {
+        display: flex;
+        flex-direction: column;
+        gap: 0.7rem;
+        position: relative;
+        z-index: 1;
+      }
+      .ask-form label {
+        display: block;
+        margin-bottom: 0.3rem;
+        font-weight: 600;
+        color: #bfc7e1;
+        margin-top: 1.1rem;
+        letter-spacing: 0.2px;
+      }
+      .ask-form label:first-of-type {
+        margin-top: 0;
+      }
+      .ask-form input[type="text"] {
+        width: 100%;
+        padding: 0.8rem;
+        margin-bottom: 0.8rem;
+        border: 2px solid #302b63;
+        border-radius: 10px;
+        font-size: 1.08rem;
+        background: #23243aee;
+        color: #fff;
+        transition: border 0.2s, box-shadow 0.2s;
+        box-shadow: 0 1px 4px #667eea11;
+      }
+      .ask-form input[type="text"]:focus {
+        border: 2px solid #764ba2;
+        outline: none;
+        background: #23243a;
+        box-shadow: 0 2px 8px #764ba233;
+        color: #fff;
+      }
+      .toolbar {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(90deg, #23243a 0%, #302b63 100%);
+        border-radius: 10px;
+        padding: 0.5rem 0.7rem;
+        border: 2px solid #302b63;
+        flex-wrap: wrap;
+        box-shadow: 0 2px 12px #667eea22;
+        backdrop-filter: blur(2px);
+        position: relative;
+        z-index: 1;
+      }
+      .toolbar button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.25rem 0.6rem;
+        border-radius: 7px;
+        transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
+        color: #bfc7e1;
+        display: flex;
+        align-items: center;
+        gap: 0.2rem;
+        height: 2.1rem;
+        box-shadow: 0 1px 4px #667eea11;
+        font-size: 1.1rem;
+      }
+      .toolbar button:hover,
+      .toolbar button:focus {
+        background: linear-gradient(90deg, #667eea33 0%, #764ba233 100%);
+        box-shadow: 0 2px 8px #764ba233;
+        outline: none;
+        transform: scale(1.13);
+        color: #f093fb;
+      }
+      .toolbar .sep {
+        width: 1px;
+        background: #444;
+        margin: 0 0.2rem;
+        height: 1.5em;
+        align-self: center;
+      }
+      .toolbar svg {
+        width: 22px;
+        height: 22px;
+        display: block;
+        fill: #667eea;
+        transition: fill 0.2s;
+      }
+      .toolbar button:hover svg,
+      .toolbar button:focus svg {
+        fill: #f093fb;
+      }
+      .rich-text {
+        min-height: 120px;
+        border: 2px solid #302b63;
+        border-radius: 10px;
+        background: #23243aee;
+        margin-bottom: 1.2rem;
+        padding: 0.8rem;
+        font-size: 1.08rem;
+        color: #fff;
+        transition: border 0.2s, box-shadow 0.2s;
+        outline: none;
+        box-shadow: 0 1px 4px #667eea11;
+      }
+      .rich-text:focus {
+        border: 2px solid #764ba2;
+        background: #23243a;
+        box-shadow: 0 2px 8px #764ba233;
+        color: #fff;
+      }
+      .submit-btn {
+        width: 100%;
+        padding: 1rem;
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        font-size: 1.18rem;
+        font-weight: 800;
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s, box-shadow 0.2s,
+          transform 0.15s;
+        margin-top: 1.2rem;
+        letter-spacing: 0.5px;
+        box-shadow: 0 2px 12px rgba(102, 126, 234, 0.13);
+        text-shadow: 0 1px 4px #667eea33;
+        position: relative;
+        z-index: 1;
+        overflow: hidden;
+      }
+      .submit-btn::after {
+        content: "";
+        position: absolute;
+        left: -50%;
+        top: 0;
+        width: 200%;
+        height: 100%;
+        background: linear-gradient(120deg, #fffbe6 0%, #f093fb44 100%);
+        opacity: 0;
+        transition: opacity 0.3s;
+        z-index: 0;
+      }
+      .submit-btn:hover,
+      .submit-btn:focus {
+        background: linear-gradient(90deg, #f093fb 0%, #667eea 100%);
+        color: #fffbe6;
+        box-shadow: 0 4px 24px #f093fb55;
+        transform: scale(1.03);
+        outline: none;
+      }
+      .submit-btn:hover::after,
+      .submit-btn:focus::after {
+        opacity: 0.18;
+      }
+      @media (max-width: 900px) {
+        .ask-container {
+          max-width: 98vw;
+          padding: 1.5rem 1rem;
+        }
+        .header {
+          padding: 1rem 1rem;
+        }
+        .nav-right {
+          gap: 1rem;
+        }
+      }
+      .particle:nth-child(1) {
+        left: 10%;
+        animation-delay: 0s;
+      }
+      .particle:nth-child(2) {
+        left: 20%;
+        animation-delay: 1s;
+      }
+      .particle:nth-child(3) {
+        left: 30%;
+        animation-delay: 2s;
+      }
+      .particle:nth-child(4) {
+        left: 40%;
+        animation-delay: 3s;
+      }
+      .particle:nth-child(5) {
+        left: 50%;
+        animation-delay: 4s;
+      }
+      .particle:nth-child(6) {
+        left: 60%;
+        animation-delay: 5s;
+      }
+      .particle:nth-child(7) {
+        left: 70%;
+        animation-delay: 6s;
+      }
+      .particle:nth-child(8) {
+        left: 80%;
+        animation-delay: 7s;
+      }
+      .particle:nth-child(9) {
+        left: 90%;
+        animation-delay: 8s;
+      }
+      .particle:nth-child(10) {
+        left: 95%;
+        animation-delay: 9s;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Animated background particles -->
+    <div class="particles">
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+    </div>
+    <header class="header">
+      <div class="logo-container">
+        <div class="logo-icon"></div>
+        <a href="#" class="logo">StackIt</a>
+      </div>
+      <div class="nav-right">
+        <a href="#" class="nav-link">Home</a>
+        <button class="notification-btn" title="Notifications">
+          <span class="bell">🔔</span>
+          <span class="notif-count">2</span>
+        </button>
+        <img
+          src="https://i.pravatar.cc/40?img=3"
+          alt="Profile"
+          class="profile-pic"
+        />
+      </div>
+    </header>
+    <main class="ask-container">
+      <h2>Ask a Question</h2>
+      <form class="ask-form" autocomplete="off">
+        <label for="title">Title</label>
+        <input
+          type="text"
+          id="title"
+          name="title"
+          placeholder="Enter a short, descriptive title"
+          required
+        />
+        <label for="description">Description</label>
+        <div class="toolbar">
+          <button type="button" title="Bold" onclick="format('bold')">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M15.6 10.79A4.5 4.5 0 0 0 12 2H7a1 1 0 0 0-1 1v18a1 1 0 0 0 1 1h7a5 5 0 0 0 1.6-9.71zM9 4h3a2.5 2.5 0 0 1 0 5H9zm4 14H9v-5h4a2.5 2.5 0 0 1 0 5z"
+              />
+            </svg>
+          </button>
+          <button type="button" title="Italic" onclick="format('italic')">
+            <svg viewBox="0 0 24 24">
+              <path d="M10 4v3h2.21l-3.42 10H6v3h8v-3h-2.21l3.42-10H18V4z" />
+            </svg>
+          </button>
+          <button type="button" title="Underline" onclick="format('underline')">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M5 21h14v-2H5v2zm7-3a7 7 0 0 0 7-7V3h-2v8a5 5 0 0 1-10 0V3H5v8a7 7 0 0 0 7 7z"
+              />
+            </svg>
+          </button>
+          <button
+            type="button"
+            title="Strikethrough"
+            onclick="format('strikeThrough')"
+          >
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M5 12h14v2H5zm7-7a5 5 0 0 1 5 5h-2a3 3 0 0 0-6 0c0 1.31.84 2.42 2 2.83V17h2v-4.17A5.001 5.001 0 0 1 12 5z"
+              />
+            </svg>
+          </button>
+          <span class="sep"></span>
+          <button
+            type="button"
+            title="Numbered List"
+            onclick="format('insertOrderedList')"
+          >
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M7 7h14v2H7zm0 4h14v2H7zm0 4h14v2H7zM3 7h2v2H3zm0 4h2v2H3zm0 4h2v2H3z"
+              />
+            </svg>
+          </button>
+          <button
+            type="button"
+            title="Bullet List"
+            onclick="format('insertUnorderedList')"
+          >
+            <svg viewBox="0 0 24 24">
+              <circle cx="5" cy="8" r="2" />
+              <circle cx="5" cy="16" r="2" />
+              <rect x="9" y="7" width="12" height="2" />
+              <rect x="9" y="15" width="12" height="2" />
+            </svg>
+          </button>
+          <span class="sep"></span>
+          <button type="button" title="Emoji" onclick="insertEmoji()">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10" fill="#ffd600" />
+              <circle cx="8" cy="10" r="1.5" fill="#222" />
+              <circle cx="16" cy="10" r="1.5" fill="#222" />
+              <path
+                d="M8 16c1.333 1 2.667 1 4 0"
+                stroke="#222"
+                stroke-width="1.5"
+                fill="none"
+                stroke-linecap="round"
+              />
+            </svg>
+          </button>
+          <button type="button" title="Insert Link" onclick="insertLink()">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M17 7a5 5 0 0 1 0 10h-4v-2h4a3 3 0 0 0 0-6h-4V7h4zm-6 2v2H7a3 3 0 0 0 0 6h4v2H7a5 5 0 0 1 0-10z"
+              />
+            </svg>
+          </button>
+          <button type="button" title="Insert Image" onclick="insertImage()">
+            <svg viewBox="0 0 24 24">
+              <rect x="3" y="5" width="18" height="14" rx="2" />
+              <circle cx="8.5" cy="11.5" r="2.5" />
+              <path d="M21 19l-5.5-7-4.5 6-3-4-5 7" />
+            </svg>
+          </button>
+          <span class="sep"></span>
+          <button
+            type="button"
+            title="Align Left"
+            onclick="format('justifyLeft')"
+          >
+            <svg viewBox="0 0 24 24">
+              <rect x="3" y="6" width="18" height="2" />
+              <rect x="3" y="10" width="12" height="2" />
+              <rect x="3" y="14" width="18" height="2" />
+              <rect x="3" y="18" width="12" height="2" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            title="Align Center"
+            onclick="format('justifyCenter')"
+          >
+            <svg viewBox="0 0 24 24">
+              <rect x="6" y="6" width="12" height="2" />
+              <rect x="3" y="10" width="18" height="2" />
+              <rect x="6" y="14" width="12" height="2" />
+              <rect x="3" y="18" width="18" height="2" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            title="Align Right"
+            onclick="format('justifyRight')"
+          >
+            <svg viewBox="0 0 24 24">
+              <rect x="3" y="6" width="18" height="2" />
+              <rect x="9" y="10" width="12" height="2" />
+              <rect x="3" y="14" width="18" height="2" />
+              <rect x="9" y="18" width="12" height="2" />
+            </svg>
+          </button>
+        </div>
+        <div
+          id="description"
+          class="rich-text"
+          contenteditable="true"
+          placeholder="Describe your question in detail..."
+        ></div>
+        <label for="tags">Tags</label>
+        <input type="text" id="tags" name="tags" placeholder="" required />
+        <button type="submit" class="submit-btn">Submit</button>
+      </form>
+    </main>
+    <script>
+      function format(command) {
+        document.execCommand(command, false, null);
+      }
+      function insertLink() {
+        const url = prompt("Enter the URL");
+        if (url) document.execCommand("createLink", false, url);
+      }
+      function insertImage() {
+        const url = prompt("Enter the image URL");
+        if (url) document.execCommand("insertImage", false, url);
+      }
+      function insertEmoji() {
+        const emoji = prompt("Enter emoji (e.g. 😊)");
+        if (emoji) document.execCommand("insertText", false, emoji);
+      }
+      // Add more particles dynamically
+      function createParticle() {
+        const particle = document.createElement("div");
+        particle.className = "particle";
+        particle.style.left = Math.random() * 100 + "%";
+        particle.style.animationDelay = Math.random() * 10 + "s";
+        document.querySelector(".particles").appendChild(particle);
+      }
+      for (let i = 0; i < 15; i++) {
+        setTimeout(createParticle, i * 200);
+      }
+    </script>
+  </body>
+</html>

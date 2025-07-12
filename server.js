@@ -1,11 +1,12 @@
 const express = require('express');
-const mongoose = require('mongoose');
+const mysql = require('mysql2/promise');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const dotenv = require('dotenv');
 const http = require('http');
 const socketIo = require('socket.io');
+const path = require('path');
 
 // Load environment variables
 dotenv.config();
@@ -26,7 +27,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: process.env.FRONTEND_URL || "http://localhost:5000",
     methods: ["GET", "POST"]
   }
 });
@@ -39,22 +40,49 @@ const limiter = rateLimit({
 });
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false // Disable CSP for development
+}));
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:3000",
+  origin: process.env.FRONTEND_URL || "http://localhost:5000",
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(limiter);
 
+// Serve static files (HTML, CSS, JS)
+app.use(express.static('.'));
+
 // Database connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/stackit', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log('Connected to MongoDB'))
-.catch(err => console.error('MongoDB connection error:', err));
+const dbConfig = {
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'stackit',
+  charset: 'utf8mb4',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+};
+
+// Create database pool
+const pool = mysql.createPool(dbConfig);
+
+// Test database connection
+async function testConnection() {
+  try {
+    const connection = await pool.getConnection();
+    console.log('✅ Connected to MySQL database successfully!');
+    connection.release();
+  } catch (error) {
+    console.error('❌ MySQL connection error:', error.message);
+    process.exit(1);
+  }
+}
+
+// Make pool available to routes
+app.set('db', pool);
 
 // Socket.io connection handling
 io.on('connection', (socket) => {
@@ -90,6 +118,31 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Serve HTML pages
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'login.html'));
+});
+
+app.get('/register', (req, res) => {
+  res.sendFile(path.join(__dirname, 'register.html'));
+});
+
+app.get('/questions', (req, res) => {
+  res.sendFile(path.join(__dirname, 'que.html'));
+});
+
+app.get('/answers', (req, res) => {
+  res.sendFile(path.join(__dirname, 'ans.html'));
+});
+
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dashboard.html'));
+});
+
 // Error handling middleware
 app.use(errorHandler);
 
@@ -100,9 +153,10 @@ app.use('*', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  await testConnection();
 });
 
-module.exports = { app, server, io }; 
+module.exports = { app, server, io };

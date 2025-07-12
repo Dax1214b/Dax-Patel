@@ -472,6 +472,171 @@
                 </div>
             </div>
         </div>
+
+        <!-- Question List Section -->
+        <section class="question-list-section">
+            <div class="question-list-header">
+                <h2>Questions</h2>
+            </div>
+            <div id="question-list" class="question-list">
+                <!-- Questions will be rendered here by JS -->
+            </div>
+        </section>
+
+        <style>
+        .question-list-section {
+            margin: 3rem auto 0 auto;
+            max-width: 900px;
+            background: rgba(255,255,255,0.07);
+            border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+            padding: 2rem 2rem 1rem 2rem;
+        }
+        .question-list-header {
+            border-bottom: 1px solid rgba(255,255,255,0.13);
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+        }
+        .question-list-header h2 {
+            font-size: 1.4rem;
+            color: #fff;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+        .question-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .question-card {
+            background: rgba(255,255,255,0.13);
+            border-radius: 12px;
+            padding: 1.5rem 1.5rem 1.2rem 1.5rem;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+            display: flex;
+            flex-direction: column;
+            gap: 0.7rem;
+            position: relative;
+        }
+        .question-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 0.2rem;
+        }
+        .question-excerpt {
+            color: #e0e0e0;
+            font-size: 1rem;
+            margin-bottom: 0.2rem;
+        }
+        .question-meta {
+            display: flex;
+            align-items: center;
+            gap: 1.2rem;
+            font-size: 0.95rem;
+            color: #bdbdbd;
+        }
+        .question-meta .user {
+            font-weight: 600;
+            color: #a3bffa;
+        }
+        .question-meta .time {
+            font-size: 0.92rem;
+            color: #bdbdbd;
+        }
+        .question-tags {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.2rem;
+        }
+        .question-tag {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            border-radius: 6px;
+            padding: 0.2rem 0.7rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        @media (max-width: 600px) {
+            .question-list-section {
+                padding: 1rem 0.5rem 0.5rem 0.5rem;
+            }
+            .question-card {
+                padding: 1rem 0.7rem 0.7rem 0.7rem;
+            }
+        }
+        </style>
+
+<script>
+// Sample data for demonstration
+const questions = [
+    {
+        title: "How to join 2 columns in a data set to make a separate column in SQL?",
+        excerpt: "I want to combine two fields for a list in one logspace. As an example, I want to do this for the first n columns containing first name and last name...",
+        user: "UserOne",
+        time: "2 hours ago",
+        tags: ["SQL", "Database", "Join"]
+    },
+    {
+        title: "What is the difference between let, var, and const in JavaScript?",
+        excerpt: "Can someone explain the difference between let, var, and const with examples?",
+        user: "CodeMaster",
+        time: "5 hours ago",
+        tags: ["JavaScript", "Variables"]
+    },
+    {
+        title: "How to center a div using CSS Flexbox?",
+        excerpt: "I'm struggling to center a div both vertically and horizontally using Flexbox. What is the best way?",
+        user: "FrontendDev",
+        time: "1 day ago",
+        tags: ["CSS", "Flexbox", "Centering"]
+    }
+];
+
+function renderQuestions() {
+    const list = document.getElementById('question-list');
+    list.innerHTML = '';
+    questions.forEach((q, i) => {
+        const card = document.createElement('div');
+        card.className = 'question-card';
+        card.innerHTML = `
+            <div class="question-title">${q.title}</div>
+            <div class="question-excerpt">${q.excerpt}</div>
+            <div class="question-meta">
+                <span class="user">${q.user}</span>
+                <span class="time">${q.time}</span>
+            </div>
+            <div class="question-tags">
+                ${q.tags.map(tag => `<span class=\"question-tag\">${tag}</span>`).join('')}
+            </div>
+        `;
+        // Make only the first card clickable
+        if (i === 0) {
+            card.style.cursor = 'pointer';
+            card.addEventListener('click', () => {
+                window.location.href = 'ans.html';
+            });
+        }
+        list.appendChild(card);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    renderQuestions();
+    // Add navigation for Ask Question button
+    const askBtn = document.querySelector('.action-card .action-btn');
+    if (askBtn) {
+        askBtn.onclick = function() {
+            window.location.href = 'que.html';
+        };
+    }
+});
+
+document.getElementById('ask-question-btn').onclick = function() {
+    window.location.href = 'que.html';
+};
+</script>
+
     </main>
 
     <script>

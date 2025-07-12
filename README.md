@@ -209,61 +209,46 @@ Content-Type: application/json
 }
 ```
 
-#### Add Comment
+#### Accept Answer
 ```http
-POST /api/answers/:id/comments
+POST /api/answers/:id/accept
 Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "content": "Great answer! Here's an additional tip..."
-}
 ```
 
-### Users Endpoints
+### User Endpoints
 
 #### Get User Profile
 ```http
 GET /api/users/:id
 ```
 
+#### Update User Profile
+```http
+PUT /api/users/:id
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "bio": "Updated bio",
+  "avatar": "image_url"
+}
+```
+
 #### Get User Questions
 ```http
-GET /api/users/:id/questions?page=1&limit=10
+GET /api/users/:id/questions
 ```
 
 #### Get User Answers
 ```http
-GET /api/users/:id/answers?page=1&limit=10
+GET /api/users/:id/answers
 ```
 
-#### Get Leaderboard
-```http
-GET /api/users/leaderboard?limit=10&period=all
-```
-
-### Tags Endpoints
-
-#### Get Popular Tags
-```http
-GET /api/tags/popular?limit=10
-```
-
-#### Search Tags
-```http
-GET /api/tags/search?q=javascript&page=1&limit=20
-```
-
-#### Get Tag Details
-```http
-GET /api/tags/:name
-```
-
-### Notifications Endpoints
+### Notification Endpoints
 
 #### Get Notifications
 ```http
-GET /api/notifications?page=1&limit=20&unreadOnly=false
+GET /api/notifications
 Authorization: Bearer <token>
 ```
 
@@ -273,25 +258,35 @@ PUT /api/notifications/:id/read
 Authorization: Bearer <token>
 ```
 
-#### Get Unread Count
+#### Mark All Notifications as Read
 ```http
-GET /api/notifications/unread-count
+PUT /api/notifications/read-all
 Authorization: Bearer <token>
 ```
 
-## 🔐 Authentication
+### Tag Endpoints
 
-The API uses JWT (JSON Web Tokens) for authentication. Include the token in the Authorization header:
-
+#### Get All Tags
 ```http
-Authorization: Bearer <your-jwt-token>
+GET /api/tags
 ```
 
-## 👥 User Roles
+#### Search Tags
+```http
+GET /api/tags/search?q=javascript
+```
 
-- **Guest**: View questions and answers
-- **User**: Register, login, post questions/answers, vote, comment
-- **Admin**: All user permissions + content moderation, user management
+#### Create Tag (Admin Only)
+```http
+POST /api/tags
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "name": "new-tag",
+  "description": "Description for the new tag"
+}
+```
 
 ## 🔧 Configuration
 
@@ -299,126 +294,111 @@ Authorization: Bearer <your-jwt-token>
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `PORT` | Server port | 5000 |
-| `NODE_ENV` | Environment | development |
-| `MONGODB_URI` | MongoDB connection string | mongodb://localhost:27017/stackit |
+| `PORT` | Server port | `5000` |
+| `NODE_ENV` | Environment | `development` |
+| `MONGODB_URI` | MongoDB connection string | `mongodb://localhost:27017/stackit` |
 | `JWT_SECRET` | JWT secret key | Required |
-| `JWT_EXPIRE` | JWT expiration time | 7d |
+| `JWT_EXPIRE` | JWT expiration time | `7d` |
 | `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name | Required |
 | `CLOUDINARY_API_KEY` | Cloudinary API key | Required |
 | `CLOUDINARY_API_SECRET` | Cloudinary API secret | Required |
 | `EMAIL_HOST` | SMTP host | Required |
-| `EMAIL_PORT` | SMTP port | 587 |
+| `EMAIL_PORT` | SMTP port | `587` |
 | `EMAIL_USER` | SMTP username | Required |
 | `EMAIL_PASS` | SMTP password | Required |
+
+### Rate Limiting
+
+Configure rate limiting in your `.env` file:
+
+```env
+RATE_LIMIT_WINDOW_MS=900000  # 15 minutes
+RATE_LIMIT_MAX_REQUESTS=100  # 100 requests per window
+```
 
 ## 🧪 Testing
 
 Run the test suite:
 
 ```bash
-# Run all tests
 npm test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run tests with coverage
-npm run test:coverage
 ```
 
-## 📦 Deployment
+Run tests in watch mode:
 
-### Using Docker
+```bash
+npm run test:watch
+```
 
-1. **Build the image**
+## 🚀 Deployment
+
+### Local Development
+
+```bash
+npm run dev
+```
+
+### Production Deployment
+
+1. Set environment variables:
    ```bash
-   docker build -t stackit-backend .
+   export NODE_ENV=production
+   export PORT=5000
    ```
 
-2. **Run the container**
+2. Start the server:
    ```bash
-   docker run -p 5000:5000 --env-file .env stackit-backend
+   npm start
    ```
 
-### Using PM2
-
-1. **Install PM2**
+3. Use a process manager like PM2:
    ```bash
    npm install -g pm2
+   pm2 start server.js
    ```
 
-2. **Start the application**
-   ```bash
-   pm2 start server.js --name "stackit-backend"
-   ```
+## 📁 Project Structure
 
-3. **Monitor the application**
-   ```bash
-   pm2 monit
-   ```
-
-### Using Heroku
-
-1. **Create Heroku app**
-   ```bash
-   heroku create your-app-name
-   ```
-
-2. **Set environment variables**
-   ```bash
-   heroku config:set NODE_ENV=production
-   heroku config:set MONGODB_URI=your-mongodb-uri
-   heroku config:set JWT_SECRET=your-jwt-secret
-   # ... set other environment variables
-   ```
-
-3. **Deploy**
-   ```bash
-   git push heroku main
-   ```
+```
+stackit-backend/
+├── models/                 # Database models
+│   ├── User.js
+│   ├── Question.js
+│   ├── Answer.js
+│   ├── Notification.js
+│   └── Tag.js
+├── routes/                 # API routes
+│   ├── auth.js
+│   ├── questions.js
+│   ├── answers.js
+│   ├── users.js
+│   ├── notifications.js
+│   └── tags.js
+├── middleware/             # Custom middleware
+│   ├── auth.js
+│   ├── errorHandler.js
+│   └── validation.js
+├── utils/                  # Utility functions
+│   ├── emailService.js
+│   └── uploadService.js
+├── test/                   # Test files
+│   └── basic.test.js
+├── server.js              # Main server file
+├── package.json           # Dependencies
+├── env.example           # Environment variables template
+└── README.md             # This file
+```
 
 ## 🔒 Security Features
 
 - **JWT Authentication** - Secure token-based authentication
-- **Password Hashing** - bcrypt for password security
-- **Rate Limiting** - Prevent abuse with configurable limits
+- **Password Hashing** - bcrypt with salt
+- **Rate Limiting** - Protect against abuse
 - **Input Validation** - Comprehensive request validation
-- **CORS Protection** - Cross-origin resource sharing protection
-- **Helmet Security** - Security headers middleware
-- **SQL Injection Protection** - MongoDB with parameterized queries
-- **XSS Protection** - Input sanitization and validation
-
-## 📊 Database Schema
-
-### User Model
-- Username, email, password
-- Role (guest, user, admin)
-- Reputation, badges, bio
-- Preferences and settings
-
-### Question Model
-- Title, description, tags
-- Author, votes, views
-- Answers, accepted answer
-- Status and metadata
-
-### Answer Model
-- Content, author, question
-- Votes, comments
-- Accepted status
-- Edit history
-
-### Notification Model
-- Recipient, sender, type
-- Title, message, data
-- Read status, timestamps
-
-### Tag Model
-- Name, description
-- Usage count, questions count
-- Synonyms, related tags
-- Moderation status
+- **CORS Protection** - Configured for security
+- **Helmet** - Security headers
+- **SQL Injection Prevention** - Parameterized queries
+- **XSS Protection** - Input sanitization
 
 ## 🤝 Contributing
 
@@ -434,28 +414,17 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🆘 Support
 
-For support and questions:
+If you encounter any issues:
 
-- Create an issue in the repository
-- Email: support@stackit.com
-- Documentation: [API Docs](https://docs.stackit.com)
+1. Check the troubleshooting section
+2. Review the console for error messages
+3. Verify all prerequisites are installed
+4. Ensure environment variables are properly configured
 
-## 🔄 Changelog
+## 📞 Contact
 
-### v1.0.0
-- Initial release
-- Complete Q&A functionality
-- User authentication and authorization
-- Real-time notifications
-- Image upload support
-- Comprehensive API documentation
-
-## 🙏 Acknowledgments
-
-- Express.js team for the amazing framework
-- MongoDB team for the database
-- Socket.IO team for real-time functionality
-- All contributors and community members
+- **Project Link**: [https://github.com/your-username/stackit-backend](https://github.com/your-username/stackit-backend)
+- **Issues**: [https://github.com/your-username/stackit-backend/issues](https://github.com/your-username/stackit-backend/issues)
 
 ---
 
