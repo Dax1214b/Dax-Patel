@@ -621,7 +621,20 @@ function renderQuestions() {
     });
 }
 
-document.addEventListener('DOMContentLoaded', renderQuestions);
+document.addEventListener('DOMContentLoaded', function() {
+    renderQuestions();
+    // Add navigation for Ask Question button
+    const askBtn = document.querySelector('.action-card .action-btn');
+    if (askBtn) {
+        askBtn.onclick = function() {
+            window.location.href = 'que.html';
+        };
+    }
+});
+
+document.getElementById('ask-question-btn').onclick = function() {
+    window.location.href = 'que.html';
+};
 </script>
 
     </main>
