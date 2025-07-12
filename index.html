@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StackIt - Your Q&A Platform</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -12,100 +13,259 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
             min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated background particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: float 6s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0; }
+            50% { transform: translateY(-20px) rotate(180deg); opacity: 1; }
         }
 
         .header {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 1rem 2rem;
+            background: rgba(15, 12, 41, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1.5rem 3rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
             position: sticky;
             top: 0;
             z-index: 1000;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 12px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .logo-icon::before {
+            content: 'S';
+            color: white;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
         }
 
         .logo {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #333;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             text-decoration: none;
+            letter-spacing: 3px;
         }
 
         .login-btn {
-            background: linear-gradient(45deg, #667eea, #764ba2);
+            background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
             border: none;
-            padding: 0.8rem 2rem;
-            border-radius: 25px;
+            padding: 1rem 2.5rem;
+            border-radius: 50px;
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            border: 2px solid transparent;
+        }
+
+        .login-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.6s;
+        }
+
+        .login-btn:hover::before {
+            left: 100%;
         }
 
         .login-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.5);
+            border-color: rgba(255, 255, 255, 0.3);
         }
 
         .main-content {
-            padding: 3rem 2rem;
-            max-width: 1200px;
+            padding: 4rem 3rem;
+            max-width: 1400px;
             margin: 0 auto;
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-section {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .hero-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 4.5rem;
+            font-weight: 900;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 4px;
+            line-height: 1.1;
+        }
+
+        .hero-subtitle {
+            font-size: 1.4rem;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 300;
+            letter-spacing: 1px;
+            margin-bottom: 3rem;
         }
 
         .buttons-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .action-card {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .action-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 1rem;
+            border-radius: 12px;
             display: flex;
-            gap: 1.5rem;
+            align-items: center;
             justify-content: center;
-            flex-wrap: wrap;
-            margin-top: 2rem;
+            font-size: 1.5rem;
+            color: white;
+            font-weight: bold;
+        }
+
+        .card-icon.ask {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .card-icon.browse {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+        }
+
+        .card-icon.search {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 1rem;
+            letter-spacing: 1px;
+        }
+
+        .card-description {
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 2rem;
+            line-height: 1.6;
         }
 
         .action-btn {
-            background: rgba(255, 255, 255, 0.9);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            padding: 1.2rem 2rem;
-            border-radius: 15px;
-            font-size: 1.1rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-            color: #333;
-            min-width: 200px;
-            position: relative;
-        }
-
-        .action-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-            background: rgba(255, 255, 255, 0.95);
+            font-family: 'Inter', sans-serif;
+            width: 100%;
         }
 
         .dropdown-container {
             position: relative;
-            display: inline-block;
         }
 
         .dropdown-content {
             display: none;
             position: absolute;
-            background: rgba(255, 255, 255, 0.95);
-            min-width: 200px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-            border-radius: 10px;
-            z-index: 1;
             top: 100%;
             left: 0;
+            right: 0;
+            background: rgba(15, 12, 41, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
             margin-top: 0.5rem;
+            z-index: 10;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
         }
 
         .dropdown-container:hover .dropdown-content {
@@ -113,119 +273,203 @@
         }
 
         .dropdown-content a {
-            color: #333;
+            color: rgba(255, 255, 255, 0.8);
             padding: 1rem 1.5rem;
             text-decoration: none;
             display: block;
-            transition: background 0.3s ease;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .dropdown-content a:last-child {
+            border-bottom: none;
         }
 
         .dropdown-content a:hover {
-            background: rgba(102, 126, 234, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
         }
 
         .search-container {
             position: relative;
-            display: inline-block;
+            margin-top: 1rem;
         }
 
         .search-input {
-            width: 300px;
-            padding: 1rem 1.5rem;
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            border-radius: 25px;
+            width: 100%;
+            padding: 1.2rem 4.5rem 1.2rem 1.8rem;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50px;
             font-size: 1rem;
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(10px);
             outline: none;
-            transition: all 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            color: white;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 400;
         }
 
         .search-input:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+            border-color: rgba(79, 172, 254, 0.6);
+            box-shadow: 0 0 25px rgba(79, 172, 254, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.02);
         }
 
         .search-btn {
             position: absolute;
-            right: 10px;
+            right: 6px;
             top: 50%;
             transform: translateY(-50%);
-            background: linear-gradient(45deg, #667eea, #764ba2);
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
             border: none;
             color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
+            padding: 0.8rem;
+            border-radius: 50%;
             cursor: pointer;
-            font-size: 0.9rem;
-        }
-
-        .welcome-text {
-            text-align: center;
-            color: white;
-            margin-bottom: 2rem;
-        }
-
-        .welcome-text h1 {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-        }
-
-        .welcome-text p {
             font-size: 1.2rem;
-            opacity: 0.9;
+            font-weight: 600;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 45px;
+            height: 45px;
+            box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
         }
+
+        .search-btn::before {
+            content: '🔍';
+            font-size: 1.1rem;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-50%) scale(1.08);
+            box-shadow: 0 8px 25px rgba(79, 172, 254, 0.5);
+            background: linear-gradient(135deg, #00f2fe, #4facfe);
+        }
+
+        .search-btn:active {
+            transform: translateY(-50%) scale(0.95);
+        }
+
+
 
         @media (max-width: 768px) {
+            .header {
+                padding: 1rem 2rem;
+            }
+
+            .main-content {
+                padding: 2rem 1.5rem;
+            }
+
+            .hero-title {
+                font-size: 2.5rem;
+            }
+
             .buttons-container {
-                flex-direction: column;
-                align-items: center;
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
             }
-            
-            .action-btn {
-                width: 100%;
-                max-width: 300px;
+
+            .action-card {
+                padding: 2rem;
             }
-            
-            .search-input {
-                width: 250px;
-            }
-            
-            .welcome-text h1 {
+
+            .logo {
                 font-size: 2rem;
             }
+
+            .logo-icon {
+                width: 40px;
+                height: 40px;
+            }
         }
+
+        /* Add floating particles */
+        .particle:nth-child(1) { left: 10%; animation-delay: 0s; }
+        .particle:nth-child(2) { left: 20%; animation-delay: 1s; }
+        .particle:nth-child(3) { left: 30%; animation-delay: 2s; }
+        .particle:nth-child(4) { left: 40%; animation-delay: 3s; }
+        .particle:nth-child(5) { left: 50%; animation-delay: 4s; }
+        .particle:nth-child(6) { left: 60%; animation-delay: 5s; }
+        .particle:nth-child(7) { left: 70%; animation-delay: 6s; }
+        .particle:nth-child(8) { left: 80%; animation-delay: 7s; }
+        .particle:nth-child(9) { left: 90%; animation-delay: 8s; }
+        .particle:nth-child(10) { left: 95%; animation-delay: 9s; }
     </style>
 </head>
 <body>
+    <!-- Animated background particles -->
+    <div class="particles">
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+    </div>
+
     <header class="header">
-        <a href="#" class="logo">StackIt</a>
+        <div class="logo-container">
+            <div class="logo-icon"></div>
+            <a href="#" class="logo">StackIt</a>
+        </div>
         <button class="login-btn">Login</button>
     </header>
 
     <main class="main-content">
-        <div class="welcome-text">
-            <h1>Welcome to StackIt</h1>
-            <p>Your community-driven Q&A platform</p>
+        <div class="hero-section">
+            <h1 class="hero-title">Welcome to StackIt</h1>
+            <p class="hero-subtitle">Your ultimate community-driven Q&A platform</p>
         </div>
 
         <div class="buttons-container">
-            <button class="action-btn">Ask New Question</button>
+            <div class="action-card">
+                <div class="card-icon ask">?</div>
+                <h3 class="card-title">Ask New Question</h3>
+                <p class="card-description">Share your knowledge and get answers from our community of experts</p>
+                <button class="action-btn">Ask Question</button>
+            </div>
             
-            <div class="dropdown-container">
-                <button class="action-btn">Newest Unanswered ▼</button>
-                <div class="dropdown-content">
-                    <a href="#">All Questions</a>
-                    <a href="#">Most Recent</a>
-                    <a href="#">Most Popular</a>
-                    <a href="#">Unanswered</a>
+            <div class="action-card">
+                <div class="card-icon browse">📚</div>
+                <h3 class="card-title">Browse Questions</h3>
+                <p class="card-description">Explore the latest questions and discover trending topics</p>
+                <div class="dropdown-container">
+                    <button class="action-btn">Newest Unanswered ▼</button>
+                    <div class="dropdown-content">
+                        <a href="#">All Questions</a>
+                        <a href="#">Most Recent</a>
+                        <a href="#">Most Popular</a>
+                        <a href="#">Unanswered</a>
+                        <a href="#">Trending</a>
+                    </div>
                 </div>
             </div>
             
-            <div class="search-container">
-                <input type="text" class="search-input" placeholder="Search questions...">
-                <button class="search-btn">Search</button>
+            <div class="action-card">
+                <div class="card-icon search">🔍</div>
+                <h3 class="card-title">Search Knowledge</h3>
+                <p class="card-description">Find answers quickly with our powerful search engine</p>
+                <div class="search-container">
+                    <input type="text" class="search-input" placeholder="Search questions, topics, or users..." autocomplete="off">
+                    <button class="search-btn"></button>
+                </div>
             </div>
         </div>
     </main>
@@ -236,25 +480,65 @@
             alert('Login functionality will be implemented here!');
         });
 
-        document.querySelector('.action-btn').addEventListener('click', function() {
-            alert('Ask New Question functionality will be implemented here!');
+        document.querySelectorAll('.action-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                if (this.textContent.includes('Ask Question')) {
+                    alert('Ask New Question functionality will be implemented here!');
+                }
+            });
         });
 
-        document.querySelector('.search-btn').addEventListener('click', function() {
-            const searchTerm = document.querySelector('.search-input').value;
-            if (searchTerm.trim()) {
-                alert(`Searching for: ${searchTerm}`);
+        // Simple search functionality
+        const searchInput = document.querySelector('.search-input');
+        const searchBtn = document.querySelector('.search-btn');
+
+        // Search button click
+        searchBtn.addEventListener('click', function() {
+            const searchTerm = searchInput.value.trim();
+            if (searchTerm) {
+                performSearch(searchTerm);
             } else {
-                alert('Please enter a search term');
+                searchInput.focus();
             }
         });
 
-        // Allow search on Enter key
-        document.querySelector('.search-input').addEventListener('keypress', function(e) {
+        // Enter key search
+        searchInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
-                document.querySelector('.search-btn').click();
+                const searchTerm = this.value.trim();
+                if (searchTerm) {
+                    performSearch(searchTerm);
+                }
             }
         });
+
+        function performSearch(searchTerm) {
+            // Add loading effect to search button
+            searchBtn.style.pointerEvents = 'none';
+            searchBtn.innerHTML = '⏳';
+            
+            setTimeout(() => {
+                alert(`Searching for: "${searchTerm}"\n\nThis would typically:\n• Search through all questions\n• Filter by relevance\n• Show real-time results\n• Display related topics`);
+                
+                // Reset button
+                searchBtn.innerHTML = '';
+                searchBtn.style.pointerEvents = 'auto';
+            }, 1000);
+        }
+
+        // Add more particles dynamically
+        function createParticle() {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 10 + 's';
+            document.querySelector('.particles').appendChild(particle);
+        }
+
+        // Create additional particles
+        for (let i = 0; i < 15; i++) {
+            setTimeout(createParticle, i * 200);
+        }
     </script>
 </body>
 </html>
