@@ -1,0 +1,31 @@
+RewriteEngine On
+
+# Handle API routes
+RewriteRule ^api/auth/(.*)$ api/auth.php [QSA,L]
+RewriteRule ^api/health$ api/health.php [QSA,L]
+
+# Serve static files
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Default to index.html
+RewriteRule ^$ index.html [L]
+
+# Handle other routes
+RewriteRule ^login$ login.html [L]
+RewriteRule ^register$ register.html [L]
+RewriteRule ^dashboard$ dashboard.html [L]
+RewriteRule ^questions$ que.html [L]
+RewriteRule ^answers$ ans.html [L]
+
+# Security headers
+Header always set X-Content-Type-Options nosniff
+Header always set X-Frame-Options DENY
+Header always set X-XSS-Protection "1; mode=block"
+
+# Enable CORS for API
+<Files "api/*.php">
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization"
+</Files> 
